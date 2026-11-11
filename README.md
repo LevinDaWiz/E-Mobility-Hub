@@ -38,4 +38,4 @@ src/
 - **Thông báo:** `notify(userId | "*" | "role:OPERATOR", message, level)`.
 - **Thêm trang:** sửa `pages/<khu>/module.tsx` của mình (route + menu), không sửa router chung.
 - **Zustand v5:** selector trả về object/mảng mới phải bọc `useShallow`.
-- Chi tiết phân công: thư mục `phan-cong/`.
+- Chi tiết phân công: thư mục `doc/`.
