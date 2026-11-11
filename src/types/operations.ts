@@ -1,5 +1,3 @@
-import type { Vehicle } from "./vehicle";
-
 export enum AlertSeverity {
   INFO = "INFO",
   WARNING = "WARNING",

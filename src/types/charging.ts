@@ -23,6 +23,9 @@ export interface ChargingPort {
   portId: string;
   powerKw: number;
   status: PortStatus;
+
+  // ID biểu diễn association Hub 1--* ChargingPort.
+  hubId: string;
 }
 
 export interface ChargingRequest {
