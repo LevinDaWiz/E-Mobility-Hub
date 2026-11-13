@@ -13,3 +13,7 @@ export const WARNING_THRESHOLD = 0.7;
 
 // Pin thấp: gợi ý đăng ký sạc.
 export const LOW_BATTERY_THRESHOLD = 20;
+
+// Đăng nhập giả lập (UC20)
+export const AUTH_DELAY_MS = 1800;
+export const DEFAULT_SCHOOL = "ĐH Bách Khoa — ĐHQG-HCM";

@@ -13,7 +13,7 @@ export interface Operator {
 export type Role = "STUDENT" | "OPERATOR" | "ADMIN" | "MANAGEMENT";
 
 // Người dùng đang đăng nhập / tài khoản mẫu dùng cho đăng nhập giả lập (UC20).
-// userId trùng studentId (SVxxx), operatorId (OPxxx) hoặc id admin/ban quản lý.
+// userId trùng studentId (MSSV, vd 2112345), operatorId (OPxxx) hoặc id admin/ban quản lý.
 export interface CurrentUser {
   userId: string;
   name: string;

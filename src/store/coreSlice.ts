@@ -31,12 +31,18 @@ export interface CoreSliceData {
   operators: Operator[];
   accounts: CurrentUser[];
   currentUser: CurrentUser;
+  // Đã đăng nhập qua màn hình SSO giả lập (UC20) hay chưa.
+  isAuthenticated: boolean;
   clock: ClockState;
   notifications: AppNotification[];
   metroData: MetroData;
 }
 
 export interface CoreSliceActions {
+  // Đăng nhập (đặt người dùng hiện tại + isAuthenticated) / đăng xuất.
+  login: (userId: string) => void;
+  logout: () => void;
+
   // Đổi vai trò (chọn tài khoản đầu tiên của vai trò đó) / đổi tài khoản.
   switchRole: (role: Role) => void;
   setCurrentUser: (userId: string) => void;
@@ -71,6 +77,7 @@ export function initialCoreState(seed: SeedData): CoreSliceData {
     operators: seed.operators,
     accounts: seed.accounts,
     currentUser: seed.accounts.find((a) => a.role === "STUDENT") ?? seed.accounts[0],
+    isAuthenticated: false,
     clock: { now: Date.now(), speed: 1, running: true },
     notifications: [],
     metroData: seed.metroData,
@@ -78,6 +85,14 @@ export function initialCoreState(seed: SeedData): CoreSliceData {
 }
 
 export const createCoreSlice: StateCreator<AppState, [], [], CoreSliceActions> = (set) => ({
+  login: (userId) =>
+    set((s) => {
+      const account = s.accounts.find((a) => a.userId === userId);
+      return account ? { currentUser: account, isAuthenticated: true } : {};
+    }),
+
+  logout: () => set({ isAuthenticated: false }),
+
   switchRole: (role) =>
     set((s) => {
       if (s.currentUser.role === role) return {};

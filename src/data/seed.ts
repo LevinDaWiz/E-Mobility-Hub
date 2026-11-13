@@ -234,10 +234,10 @@ export function createSeed(): SeedData {
   }
 
   const students: Student[] = [
-    { studentId: "SV001", name: "Nguyễn Văn An", email: "an.nguyen@hcmut.edu.vn" },
-    { studentId: "SV002", name: "Trần Thị Bình", email: "binh.tran@hcmut.edu.vn" },
-    { studentId: "SV003", name: "Lê Minh Châu", email: "chau.le@hcmut.edu.vn" },
-    { studentId: "SV004", name: "Phạm Quốc Duy", email: "duy.pham@hcmut.edu.vn" },
+    { studentId: "2112345", name: "Nguyễn Văn An", email: "an.nguyen@hcmut.edu.vn" },
+    { studentId: "2112346", name: "Trần Thị Bình", email: "binh.tran@hcmut.edu.vn" },
+    { studentId: "2112347", name: "Lê Minh Châu", email: "chau.le@hcmut.edu.vn" },
+    { studentId: "2112348", name: "Phạm Quốc Duy", email: "duy.pham@hcmut.edu.vn" },
   ];
 
   const operators: Operator[] = [
@@ -257,8 +257,8 @@ export function createSeed(): SeedData {
     { userId: "MG001", name: "Ban quản lý", role: "MANAGEMENT" },
   ];
 
-  // Mỗi xe IN_USE có một chuyến ONGOING (giao cho SV003, SV004; SV001, SV002 rảnh để demo).
-  const borrowers = ["SV003", "SV004"];
+  // Mỗi xe IN_USE có một chuyến ONGOING (giao cho 2112347, 2112348; 2112345, 2112346 rảnh để demo).
+  const borrowers = ["2112347", "2112348"];
   const trips: Trip[] = vehicles
     .filter((v) => v.status === VehicleStatus.IN_USE)
     .map((v, i) => ({

@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Màu thương hiệu lấy từ mockup (navy của sidebar / thẻ trạng thái, xanh của tile). */
+@theme {
+  --color-brand-950: #0c2150;
+  --color-brand-900: #102d5e;
+  --color-brand-700: #2f59a6;
+  --color-brand-200: #c5d7f7;
+  --color-brand-100: #dfe9fb;
+  --color-brand-50: #eff4fd;
+  --color-ink-900: #37352f;
+}
+
 @layer base {
   html,
   body,
@@ -10,4 +21,18 @@
   body {
     @apply bg-slate-50 text-slate-800 antialiased;
   }
+}
+
+/* Thanh tiến trình của màn hình "Đang xác thực" (UC20). */
+@keyframes auth-progress {
+  from {
+    width: 8%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.auth-progress {
+  animation: auth-progress 1.8s ease-out forwards;
 }

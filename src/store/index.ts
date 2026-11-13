@@ -39,5 +39,11 @@ export const useStore = create<AppState>()((set, get, api) => ({
   ...createParkingChargingSlice(set, get, api),
   ...createOpsSlice(set, get, api),
   ...createReportSlice(set, get, api),
-  resetAll: () => set(buildInitialData()),
+  // Reset dữ liệu nhưng giữ nguyên phiên đăng nhập hiện tại.
+  resetAll: () =>
+    set({
+      ...buildInitialData(),
+      currentUser: get().currentUser,
+      isAuthenticated: get().isAuthenticated,
+    }),
 }));

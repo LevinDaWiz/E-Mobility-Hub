@@ -3,7 +3,7 @@ import type { AppNotification, CurrentUser, NotificationLevel } from "../types";
 import { makeId } from "../utils/id";
 import { simNowIso } from "../utils/time";
 
-// ===== M1 sở hữu. Dùng ở mọi nơi: notify("SV001", "Xe đã hết hạn đặt", "warning") =====
+// ===== M1 sở hữu. Dùng ở mọi nơi: notify("2112345", "Xe đã hết hạn đặt", "warning") =====
 // userId: userId cụ thể, "*" (mọi người) hoặc "role:OPERATOR" (mọi người thuộc vai trò).
 
 export function notify(

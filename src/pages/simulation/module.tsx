@@ -1,14 +1,15 @@
 import { PlaceholderPage } from "../../components/ui";
 import type { AppModule } from "../../routes/types";
 
-// M4: What-if Simulation.
+// M4: site quản trị – Mô phỏng What-if.
 export const simulationModule: AppModule = {
   id: "simulation",
   owner: "M4",
-  nav: [{ label: "Mô phỏng", path: "/simulation", roles: ["OPERATOR", "MANAGEMENT"] }],
+  area: "admin",
+  adminNav: [{ label: "Mô phỏng", path: "/admin/simulation", roles: ["OPERATOR", "ADMIN", "MANAGEMENT"], order: 50 }],
   routes: [
     {
-      path: "/simulation",
+      path: "/admin/simulation",
       element: (
         <PlaceholderPage
           owner="M4"

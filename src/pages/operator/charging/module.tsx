@@ -1,19 +1,20 @@
 import { PlaceholderPage } from "../../../components/ui";
 import type { AppModule } from "../../../routes/types";
 
-// M3: quản lý lịch sạc (phía vận hành).
+// M3: site quản trị – Sạc & Lịch sạc.
 export const operatorChargingModule: AppModule = {
   id: "operator-charging",
   owner: "M3",
-  nav: [{ label: "Lịch sạc", path: "/operator/charging", roles: ["OPERATOR"] }],
+  area: "admin",
+  adminNav: [{ label: "Sạc & Lịch sạc", path: "/admin/charging", roles: ["OPERATOR", "ADMIN"], order: 40 }],
   routes: [
     {
-      path: "/operator/charging",
+      path: "/admin/charging",
       element: (
         <PlaceholderPage
           owner="M3"
-          title="Quản lý lịch sạc"
-          ucs={[{ code: "UC12", name: "Quản lý lịch sạc của các Hub" }]}
+          title="Sạc & Lịch sạc"
+          ucs={[{ code: "UC12", name: "Quản lý lịch sạc theo Hub / cổng (NIFR-05, NIFR-06)" }]}
           file="src/pages/operator/charging/module.tsx"
         />
       ),

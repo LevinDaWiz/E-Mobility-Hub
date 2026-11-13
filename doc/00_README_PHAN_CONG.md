@@ -47,7 +47,20 @@ src/
 
 **Quy tắc vàng:** mỗi người chỉ sửa file trong thư mục mình sở hữu. Cần gì ở thư mục người khác → dùng hàm họ export (mục 5) hoặc nhắn họ.
 
-> **Cập nhật:** code Phase 0 đã được viết sẵn trong `E-Mobility-Hub-phase0.zip` (giải nén đè vào project, xem README trong zip). M1 chỉ cần chạy, kiểm tra và đẩy lên `main`. Lưu ý: `registerTickHandler(name, fn)` nhận `now` là **số ms** (epoch mô phỏng); mỗi người khai báo route/menu trong `pages/<khu>/module.tsx` của mình.
+> **Cập nhật 2 – Sườn giao diện:** đã có sườn 2 giao diện theo mockup Miro (`E-Mobility-Hub-skeleton.zip`): **app mobile `/app/...`** cho sinh viên và **site quản trị `/admin/...`** có sidebar; luồng đăng nhập SSO giả lập (UC20) đủ 5 màn hình; chặn truy cập theo vai trò. Mỗi người chỉ thêm route/mục menu trong `module.tsx` của mình (xem README trong project). Bảng map nhanh:
+>
+> | Màn hình | Đường dẫn | Người làm |
+> |---|---|---|
+> | Tìm xe dùng chung / Chuyến đi / Hoạt động | `/app/shared`, `/app/trips`, `/app/activity` | M2 |
+> | Đặt chỗ đỗ / Lịch sạc / Đăng ký sạc / Xe cá nhân | `/app/parking`, `/app/charging`, `/app/charging/new`, `/app/personal` | M3 |
+> | Hỗ trợ & báo cáo sự cố (phía SV) | `/app/support` | M4 |
+> | Tổng quan, Cảnh báo & quá tải, Phương tiện, Điều phối, Sự cố, Mô phỏng | `/admin`, `/admin/overload`, `/admin/vehicles[/dispatch\|/incidents]`, `/admin/simulation` | M4 |
+> | Sạc & Lịch sạc | `/admin/charging` | M3 |
+> | Hub & chỗ đỗ, Cài đặt, Báo cáo & Thống kê | `/admin/hubs`, `/admin/settings`, `/admin/reports` | M1 |
+>
+> Mã sinh viên mẫu đổi thành MSSV: 2112345 (Nguyễn Văn An), 2112346, 2112347, 2112348.
+
+> **Cập nhật 1:** code Phase 0 đã được viết sẵn trong `E-Mobility-Hub-phase0.zip` (giải nén đè vào project, xem README trong zip). M1 chỉ cần chạy, kiểm tra và đẩy lên `main`. Lưu ý: `registerTickHandler(name, fn)` nhận `now` là **số ms** (epoch mô phỏng); mỗi người khai báo route/menu trong `pages/<khu>/module.tsx` của mình.
 
 ## 4. Phase 0 – M1 làm xong TRƯỚC (cả nhóm chờ, mục tiêu 1 ngày)
 M1 đẩy lên nhánh `main`:

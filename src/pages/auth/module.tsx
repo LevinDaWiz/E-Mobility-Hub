@@ -1,22 +1,20 @@
-import { PlaceholderPage } from "../../components/ui";
 import type { AppModule } from "../../routes/types";
+import { FailedPage } from "./FailedPage";
+import { IdpLoginPage } from "./IdpLoginPage";
+import { LandingPage } from "./LandingPage";
+import { SuccessPage } from "./SuccessPage";
+import { VerifyingPage } from "./VerifyingPage";
 
-// M1: UC20 (đăng nhập giả lập). Hiện dùng thanh chuyển vai trò trên header.
+// M1: UC20 – đăng nhập SSO giả lập (5 màn hình theo mockup).
 export const authModule: AppModule = {
   id: "auth",
   owner: "M1",
-  nav: [],
+  area: "public",
   routes: [
-    {
-      path: "/login",
-      element: (
-        <PlaceholderPage
-          owner="M1"
-          title="Đăng nhập"
-          ucs={[{ code: "UC20", name: "Xác thực sinh viên (SSO giả lập)" }]}
-          file="src/pages/auth/module.tsx"
-        />
-      ),
-    },
+    { path: "/login", element: <LandingPage /> },
+    { path: "/login/idp", element: <IdpLoginPage /> },
+    { path: "/login/verifying", element: <VerifyingPage /> },
+    { path: "/login/success", element: <SuccessPage /> },
+    { path: "/login/failed", element: <FailedPage /> },
   ],
 };
