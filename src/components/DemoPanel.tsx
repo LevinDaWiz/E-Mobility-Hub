@@ -4,6 +4,7 @@ import { SIM_SPEEDS } from "../config/constants";
 import { ROLE_LABELS } from "../config/roles";
 import { homePathForRole, LOGIN_PATH } from "../routes/paths";
 import { useStore } from "../store";
+import { DemoScenarios } from "./DemoScenarios";
 import { Button } from "./ui";
 
 // Panel điều khiển demo (M1 sẽ bổ sung: Metro surge, gây lỗi cổng / xe).
@@ -31,7 +32,7 @@ export function DemoPanel() {
   return (
     <div className="fixed bottom-20 right-3 z-40 sm:bottom-4 sm:right-4">
       {open ? (
-        <div className="w-72 rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
+        <div className="max-h-[80vh] w-80 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold">Demo controls</h2>
             <button type="button" onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -87,6 +88,10 @@ export function DemoPanel() {
                 Đăng xuất
               </Button>
             )}
+          </div>
+
+          <div className="mt-3">
+            <DemoScenarios />
           </div>
         </div>
       ) : (

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { DataSourcePanel } from "../../components/DataSourcePanel";
 import { Badge, Card, Progress, Table, type Column } from "../../components/ui";
 import { OVERLOAD_THRESHOLD } from "../../config/constants";
 import { useStore } from "../../store";
@@ -95,6 +96,8 @@ export function OverviewPage() {
         <Kpi label="Xe sẵn sàng" value={`${availableVehicles}/${vehicles.length}`} hint="Xe dùng chung" />
         <Kpi label="Sự cố đang mở" value={String(faults + openTickets)} hint={`${faults} thiết bị lỗi · ${openTickets} ticket`} />
       </div>
+
+      <DataSourcePanel />
 
       <Card title="Các Hub">
         <Table columns={hubColumns} rows={hubs} rowKey={(h) => h.hubId} />
