@@ -22,6 +22,22 @@ export interface ClockState {
   running: boolean;
 }
 
+// Trạng thái Metro surge (UC21): đang bật thì dữ liệu Metro nhân với multiplier và Hub Metro đầy dần.
+export interface MetroSurgeState {
+  active: boolean;
+  multiplier: number;
+  startedAt: string | null;
+}
+
+// Trạng thái bộ giả lập IoT (UC22) để hiện trên giao diện.
+export interface IotStatus {
+  enabled: boolean;
+  randomFaults: boolean;
+  lastUpdateAt: string | null;
+  applied: number;
+  rejected: number;
+}
+
 export interface CoreSliceData {
   hubs: Hub[];
   parkingSlots: ParkingSlot[];
@@ -36,6 +52,8 @@ export interface CoreSliceData {
   clock: ClockState;
   notifications: AppNotification[];
   metroData: MetroData;
+  metroSurge: MetroSurgeState;
+  iot: IotStatus;
 }
 
 export interface CoreSliceActions {
@@ -59,6 +77,12 @@ export interface CoreSliceActions {
   markAllNotificationsRead: () => void;
 
   setMetroData: (data: MetroData) => void;
+  setMetroSurge: (state: MetroSurgeState) => void;
+
+  setIotEnabled: (enabled: boolean) => void;
+  setIotRandomFaults: (enabled: boolean) => void;
+  // Ghi nhận kết quả xử lý một StateUpdate (áp dụng hoặc bị bỏ qua).
+  recordIotResult: (applied: boolean, at: string) => void;
 
   setClockSpeed: (speed: number) => void;
   setClockRunning: (running: boolean) => void;
@@ -81,6 +105,8 @@ export function initialCoreState(seed: SeedData): CoreSliceData {
     clock: { now: Date.now(), speed: 1, running: true },
     notifications: [],
     metroData: seed.metroData,
+    metroSurge: { active: false, multiplier: 1, startedAt: null },
+    iot: { enabled: true, randomFaults: false, lastUpdateAt: null, applied: 0, rejected: 0 },
   };
 }
 
@@ -136,6 +162,19 @@ export const createCoreSlice: StateCreator<AppState, [], [], CoreSliceActions> =
     set((s) => ({ notifications: s.notifications.map((n) => ({ ...n, read: true })) })),
 
   setMetroData: (data) => set({ metroData: data }),
+  setMetroSurge: (state) => set({ metroSurge: state }),
+
+  setIotEnabled: (enabled) => set((s) => ({ iot: { ...s.iot, enabled } })),
+  setIotRandomFaults: (enabled) => set((s) => ({ iot: { ...s.iot, randomFaults: enabled } })),
+  recordIotResult: (applied, at) =>
+    set((s) => ({
+      iot: {
+        ...s.iot,
+        lastUpdateAt: at,
+        applied: s.iot.applied + (applied ? 1 : 0),
+        rejected: s.iot.rejected + (applied ? 0 : 1),
+      },
+    })),
 
   setClockSpeed: (speed) => set((s) => ({ clock: { ...s.clock, speed } })),
   setClockRunning: (running) => set((s) => ({ clock: { ...s.clock, running } })),

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { DataSourcePanel } from "../../components/DataSourcePanel";
 import { Badge, Button, Card, Progress, Table, type Column } from "../../components/ui";
 import { OVERLOAD_THRESHOLD, WARNING_THRESHOLD } from "../../config/constants";
 import { HUB_MAP_PINS } from "../../config/mapPositions";
@@ -287,6 +288,8 @@ export function OverviewPage() {
           status={faults + openAlerts.length > 0 ? "warning" : "neutral"}
         />
       </div>
+
+      <DataSourcePanel />
 
       {/* Bản đồ trực quan Live Map */}
       <Card
