@@ -76,7 +76,7 @@ export function SupportPage() {
     const fullDesc = `${issuesDesc}${customDetail.trim() ? `Chi tiết: ${customDetail.trim()}` : ""}${isEmergency ? " [YÊU CẦU CỨU HỘ KHẨN CẤP TẠI CHỖ]" : ""}`;
 
     const newTicket: OpsIncidentTicket = {
-      ticketId: `TCK-${Date.now().toString().slice(-6)}`,
+      ticketId: "",
       type: reportType,
       targetId: target,
       hubId: selectedHubId,
@@ -85,8 +85,8 @@ export function SupportPage() {
       createdAt: simNowIso(),
     };
 
-    OperationsService.handleIncident(newTicket);
-    setSubmittedTicket(newTicket);
+    const created = OperationsService.handleIncident(newTicket);
+    setSubmittedTicket(created);
 
     // Reset Form
     setSelectedIssues([]);

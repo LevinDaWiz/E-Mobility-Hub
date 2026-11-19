@@ -15,7 +15,6 @@ import {
   type RunStatus,
 } from "../types";
 import { upsertById } from "../utils/collections";
-import { simNowIso } from "../utils/time";
 import type { AppState } from "./index";
 
 // ===== M4 sở hữu file này: cảnh báo, điều phối, sự cố, mô phỏng (UC11, UC13-UC16, UC18) =====
@@ -109,7 +108,7 @@ export interface OpsSliceActions {
 export type OpsSlice = OpsSliceData & OpsSliceActions;
 
 export function initialOpsState(): OpsSliceData {
-  const nowIso = simNowIso();
+  const nowIso = new Date().toISOString();
   return {
     alerts: [
       {
@@ -193,7 +192,7 @@ export const createOpsSlice: StateCreator<AppState, [], [], OpsSliceActions> = (
               ...t,
               status: TicketStatus.CLOSED,
               resolutionNotes: resolution,
-              closedAt: simNowIso(),
+              closedAt: new Date(s.clock.now).toISOString(),
             }
           : t
       ),

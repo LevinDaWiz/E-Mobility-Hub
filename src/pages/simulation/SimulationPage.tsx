@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, Modal, Progress, Table, type Column } from "../../components/ui";
 import {
   PRESET_SCENARIOS,
@@ -87,6 +87,17 @@ export function SimulationPage() {
     if (!currentResultRun) return null;
     return simulationResults.find((res) => res.runId === currentResultRun.runId) ?? null;
   }, [simulationResults, currentResultRun]);
+
+  // Tự động chuyển sang Tab Kết quả khi phiên mô phỏng hoàn tất 100% (UC16 -> UC18)
+  useEffect(() => {
+    if (activeRun && (activeRun.progress ?? 0) >= 100) {
+      const timer = setTimeout(() => {
+        setViewingRunId(activeRun.runId);
+        setActiveTab("RESULTS");
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [activeRun]);
 
   // Handle Scenario Choice Change
   const handleSelectPreset = (def: ScenarioDefinition) => {
@@ -672,7 +683,7 @@ export function SimulationPage() {
                   </div>
                   <div className="mt-1 flex items-baseline justify-between">
                     <span className="text-2xl font-bold text-rose-600">
-                      {(Number(currentResult.unservedDemandRate ?? 0.18) * 100).toFixed(1)}%
+                      {Number(currentResult.unservedDemandRate ?? 18).toFixed(1)}%
                     </span>
                     <span className="text-xs text-slate-500">do thiếu xe / chỗ</span>
                   </div>
@@ -980,14 +991,15 @@ export function SimulationPage() {
                 {confirmApplyModal.rec.description}
               </div>
               <div className="text-blue-800 text-[11px]">
-                Hub nguồn: <strong>{confirmApplyModal.rec.fromHubId}</strong> → Hub đích:{" "}
-                <strong>{confirmApplyModal.rec.toHubId}</strong> ({confirmApplyModal.rec.vehicleCount} xe)
+                Hub nguồn: <strong>{confirmApplyModal.rec.fromHubId || confirmApplyModal.rec.targetHubId}</strong> → Hub đích:{" "}
+                <strong>{confirmApplyModal.rec.toHubId || (currentResultRun?.parameters?.hubId as string) || "HUB-METRO-01"}</strong>
+                {confirmApplyModal.rec.vehicleCount ? ` (${confirmApplyModal.rec.vehicleCount} xe)` : ""}
               </div>
             </div>
 
             <p className="text-[11px] text-slate-500">
-              Sau khi xác nhận, lệnh điều phối sẽ mang trạng thái <code>PROPOSED</code> tại màn hình{" "}
-              <strong>/admin/vehicles/dispatch</strong> để nhân sự vận hành duyệt và điều động xe tải.
+              Sau khi xác nhận, lệnh điều phối sẽ được tạo và tự động phê duyệt (<code>APPROVED</code>) tại màn hình{" "}
+              <strong>/admin/vehicles/dispatch</strong> để nhân sự vận hành tiến hành điều động xe tải.
             </p>
           </div>
         </Modal>
@@ -1062,7 +1074,7 @@ export function SimulationPage() {
               <div><strong>Kịch bản:</strong> {currentResultRun?.scenarioType}</div>
               <div><strong>Thời gian chạy mô phỏng:</strong> {currentResultRun?.startTime}</div>
               <div><strong>Hệ số tải áp dụng:</strong> x{Number(currentResultRun?.parameters?.multiplier ?? 1).toFixed(1)}</div>
-              <div><strong>Tỷ lệ nhu cầu không phục vụ:</strong> {(Number(currentResult?.unservedDemandRate ?? 0) * 100).toFixed(1)}%</div>
+              <div><strong>Tỷ lệ nhu cầu không phục vụ:</strong> {Number(currentResult?.unservedDemandRate ?? 0).toFixed(1)}%</div>
             </div>
 
             <div className="rounded bg-slate-50 p-2 text-[11px] leading-relaxed">

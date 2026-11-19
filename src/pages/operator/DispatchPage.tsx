@@ -140,13 +140,22 @@ export function DispatchPage() {
             </>
           )}
           {o.status === DispatchStatus.APPROVED && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => OperationsService.executeDispatchOrder(o.orderId)}
-            >
-              Vận chuyển
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => OperationsService.executeDispatchOrder(o.orderId)}
+              >
+                Vận chuyển
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => OperationsService.cancelDispatchOrder(o.orderId)}
+              >
+                Hủy
+              </Button>
+            </>
           )}
           {o.status === DispatchStatus.IN_PROGRESS && (
             <Button

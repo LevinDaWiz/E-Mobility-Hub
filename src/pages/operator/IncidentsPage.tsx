@@ -104,7 +104,7 @@ export function IncidentsPage() {
     if (!newReportTargetId || !newReportDesc) return;
 
     OperationsService.handleIncident({
-      ticketId: `TCK-${Date.now().toString().slice(-6)}`,
+      ticketId: "",
       type: newReportType,
       targetId: newReportTargetId,
       hubId: newReportHubId,

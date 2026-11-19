@@ -253,18 +253,33 @@ export const SimulationService = {
         // Sinh 3 gói khuyến nghị A, B, C
         const recommendations: OpsRecommendation[] = [
           {
+            id: makeId("REC"),
             type: RecommendationType.REDISTRIBUTE,
             targetHubId: "HUB-DORM-02",
+            fromHubId: "HUB-DORM-02",
+            toHubId: params.hubId,
+            vehicleCount: 15,
+            impactScore: "HIGH",
             description: `Phương án A: Điều chuyển 15 xe từ KTX Khu B về ${targetHubName} bằng xe tải chuyên dụng (ETA 18 phút).`,
           },
           {
+            id: makeId("REC"),
             type: RecommendationType.REDIRECT,
             targetHubId: "HUB-CAMPUS-01",
+            fromHubId: params.hubId,
+            toHubId: "HUB-CAMPUS-01",
+            vehicleCount: 0,
+            impactScore: "MEDIUM",
             description: `Phương án B: Phân luồng 40% sinh viên di chuyển sang Hub ĐH Bách Khoa (cách 450m), tặng voucher 10.000đ.`,
           },
           {
+            id: makeId("REC"),
             type: RecommendationType.RESCHEDULE,
             targetHubId: params.hubId,
+            fromHubId: params.hubId,
+            toHubId: params.hubId,
+            vehicleCount: 0,
+            impactScore: "LOW",
             description: `Phương án C: Giới hạn mức sạc trần 75% tại trạm ${targetHubName} trong 60 phút để quay vòng cổng sạc.`,
           },
         ];

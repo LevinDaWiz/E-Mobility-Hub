@@ -301,7 +301,7 @@ export function OverviewPage() {
           )
         }
       >
-        <div className="relative h-64 w-full overflow-hidden rounded-xl bg-slate-900 p-4">
+        <div className="relative isolate z-0 h-64 w-full overflow-hidden rounded-xl bg-slate-900 p-4">
           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]" />
           
           <div className="absolute bottom-2 left-3 z-10 flex items-center gap-3 text-[11px] text-slate-300">
@@ -336,7 +336,7 @@ export function OverviewPage() {
                   key={hub.hubId}
                   onClick={() => setSelectedHubId(isSelected ? null : hub.hubId)}
                   style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer transition-transform hover:scale-110 z-20`}
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer transition-transform hover:scale-110 z-10`}
                 >
                   <div
                     className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-lg ring-2 ${pinColor} ${
@@ -348,7 +348,7 @@ export function OverviewPage() {
                       {Math.round(stats.utilization * 100)}%
                     </span>
                   </div>
-                  <div className="hidden group-hover:block absolute bottom-full mb-2 -left-10 w-44 rounded-lg bg-slate-800 p-2 text-left text-xs text-white shadow-xl">
+                  <div className="hidden group-hover:block absolute bottom-full mb-2 -left-10 w-44 rounded-lg bg-slate-800 p-2 text-left text-xs text-white shadow-xl z-20">
                     <p className="font-bold">{hub.name}</p>
                     <p className="text-[11px] text-slate-300">Xe trống: {stats.availableVehicles}</p>
                     <p className="text-[11px] text-slate-300">Chỗ trống: {stats.freeSlots}/{stats.totalSlots}</p>
