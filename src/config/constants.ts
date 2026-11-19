@@ -7,9 +7,20 @@ export const SIM_SPEEDS = [1, 5, 10, 30, 60] as const;
 export const VEHICLE_RESERVATION_TTL_MS = 60_000;
 export const PARKING_RESERVATION_TTL_MS = 120_000;
 
-// Ngưỡng quá tải Hub (NIFR-03): utilization > ngưỡng → cảnh báo.
-export const OVERLOAD_THRESHOLD = 0.85;
-export const WARNING_THRESHOLD = 0.7;
+// Ngưỡng mặc định của Hub mới (mỗi Hub có ngưỡng riêng trong Hub.thresholds, chỉnh ở UC19).
+// Quá tải (NIFR-03): mức sử dụng > overload. Cảnh báo: mức sử dụng >= parkingWarning.
+export const OVERLOAD_THRESHOLD = 0.9;
+export const WARNING_THRESHOLD = 0.85;
+export const DEFAULT_HUB_THRESHOLDS = {
+  overload: 0.9,
+  parkingWarning: 0.85,
+  minAvailableVehicles: 3,
+  chargingOverload: 0.9,
+} as const;
+
+// UC19: công suất cổng sạc tối đa theo định mức lưới điện hạ thế; số dòng mỗi trang của bảng.
+export const MAX_PORT_POWER_KW = 22;
+export const TABLE_PAGE_SIZE = 6;
 
 // Pin thấp: gợi ý đăng ký sạc.
 export const LOW_BATTERY_THRESHOLD = 20;

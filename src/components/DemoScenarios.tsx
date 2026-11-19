@@ -2,6 +2,7 @@ import { useState } from "react";
 import { METRO_SURGE_MULTIPLIER } from "../config/constants";
 import { iotSimulator } from "../engine/iotSimulator";
 import { injectFault, listFaultTargets, repairFault, type FaultEntity } from "../services/faultInjection";
+import { simulateOtherAdminEdit } from "../services/hubConfigService";
 import { endMetroSurge, getMetroFlow, ingestMetroData, startMetroSurge } from "../services/metroService";
 import { useStore } from "../store";
 import { PortStatus, VehicleStatus } from "../types";
@@ -20,9 +21,11 @@ export function DemoScenarios() {
   const vehicles = useStore((s) => s.vehicles);
   const ports = useStore((s) => s.chargingPorts);
   const metroData = useStore((s) => s.metroData);
+  const hubs = useStore((s) => s.hubs);
 
   const [entity, setEntity] = useState<FaultEntity>("port");
   const [targetId, setTargetId] = useState("");
+  const [conflictHubId, setConflictHubId] = useState("");
 
   const targets = listFaultTargets().filter((t) => t.entity === entity);
   const selected = targets.find((t) => t.id === targetId) ?? targets[0];
@@ -121,6 +124,25 @@ export function DemoScenarios() {
             onClick={() => selected && repairFault(selected.entity, selected.id)}
           >
             Khôi phục
+          </Button>
+        </div>
+      </section>
+
+      <section>
+        <h3 className={sectionTitle}>Cấu hình Hub (UC19)</h3>
+        <p className="mb-2 text-xs text-slate-500">
+          Mở tab Cấu hình của Hub, bấm nút dưới rồi Lưu để thấy lỗi 409 Conflict.
+        </p>
+        <div className="flex gap-1.5">
+          <select className={selectClass} value={conflictHubId || hubs[0]?.hubId || ""} onChange={(e) => setConflictHubId(e.target.value)}>
+            {hubs.map((h) => (
+              <option key={h.hubId} value={h.hubId}>
+                {h.name} (v{h.version})
+              </option>
+            ))}
+          </select>
+          <Button size="sm" variant="secondary" onClick={() => simulateOtherAdminEdit(conflictHubId || hubs[0]?.hubId || "")}>
+            Admin khác sửa
           </Button>
         </div>
       </section>

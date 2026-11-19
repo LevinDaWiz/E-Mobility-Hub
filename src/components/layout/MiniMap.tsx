@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { OVERLOAD_THRESHOLD, WARNING_THRESHOLD } from "../../config/constants";
 import { HUB_MAP_PINS } from "../../config/mapPositions";
 import { useStore } from "../../store";
 import { computeHubStats } from "../../utils/hubStats";
@@ -24,9 +23,9 @@ export function MiniMap() {
         if (!pin) return null;
         const { utilization } = computeHubStats({ parkingSlots: slots, chargingPorts: ports, vehicles }, hub.hubId);
         const color =
-          utilization > OVERLOAD_THRESHOLD
+          utilization > hub.thresholds.overload
             ? "bg-rose-600"
-            : utilization >= WARNING_THRESHOLD
+            : utilization >= hub.thresholds.parkingWarning
               ? "bg-amber-500"
               : "bg-brand-700";
         return (

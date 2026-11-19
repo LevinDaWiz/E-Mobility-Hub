@@ -69,8 +69,11 @@ export interface CoreSliceActions {
   updateVehicle: (vehicleId: string, patch: Partial<Vehicle>) => void;
   updateParkingSlot: (slotId: string, patch: Partial<ParkingSlot>) => void;
   updateChargingPort: (portId: string, patch: Partial<ChargingPort>) => void;
+  addHub: (hub: Hub) => void;
   addParkingSlot: (slot: ParkingSlot) => void;
   addChargingPort: (port: ChargingPort) => void;
+  addParkingSlots: (slots: ParkingSlot[]) => void;
+  addChargingPorts: (ports: ChargingPort[]) => void;
 
   addNotification: (n: AppNotification) => void;
   markNotificationRead: (id: string) => void;
@@ -140,18 +143,26 @@ export const createCoreSlice: StateCreator<AppState, [], [], CoreSliceActions> =
       vehicles: s.vehicles.map((v) => (v.vehicleId === vehicleId ? { ...v, ...patch } : v)),
     })),
 
+  // Mọi thay đổi slot / cổng sạc tự đóng dấu updatedAt (giờ mô phỏng) để bảng hiển thị "Cập nhật".
   updateParkingSlot: (slotId, patch) =>
     set((s) => ({
-      parkingSlots: s.parkingSlots.map((p) => (p.slotId === slotId ? { ...p, ...patch } : p)),
+      parkingSlots: s.parkingSlots.map((p) =>
+        p.slotId === slotId ? { ...p, ...patch, updatedAt: new Date(s.clock.now).toISOString() } : p,
+      ),
     })),
 
   updateChargingPort: (portId, patch) =>
     set((s) => ({
-      chargingPorts: s.chargingPorts.map((p) => (p.portId === portId ? { ...p, ...patch } : p)),
+      chargingPorts: s.chargingPorts.map((p) =>
+        p.portId === portId ? { ...p, ...patch, updatedAt: new Date(s.clock.now).toISOString() } : p,
+      ),
     })),
 
+  addHub: (hub) => set((s) => ({ hubs: [...s.hubs, hub] })),
   addParkingSlot: (slot) => set((s) => ({ parkingSlots: [...s.parkingSlots, slot] })),
   addChargingPort: (port) => set((s) => ({ chargingPorts: [...s.chargingPorts, port] })),
+  addParkingSlots: (slots) => set((s) => ({ parkingSlots: [...s.parkingSlots, ...slots] })),
+  addChargingPorts: (ports) => set((s) => ({ chargingPorts: [...s.chargingPorts, ...ports] })),
 
   addNotification: (n) => set((s) => ({ notifications: [...s.notifications, n] })),
   markNotificationRead: (id) =>

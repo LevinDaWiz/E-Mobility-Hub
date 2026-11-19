@@ -1,11 +1,12 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { DataSourcePanel } from "../../components/DataSourcePanel";
-import { Badge, Card, Progress, Table, type Column } from "../../components/ui";
-import { OVERLOAD_THRESHOLD } from "../../config/constants";
-import { useStore } from "../../store";
-import { utilizationBarClass } from "../../styles/statusColors";
-import { PortStatus, SlotStatus, VehicleStatus, type Alert, type Hub } from "../../types";
-import { computeHubStats } from "../../utils/hubStats";
+import { DataSourcePanel } from "../../../components/DataSourcePanel";
+import { Badge, Card, Progress, Table, type Column } from "../../../components/ui";
+import { useStore } from "../../../store";
+import { utilizationBarClass } from "../../../styles/statusColors";
+import { PortStatus, SlotStatus, VehicleStatus, type Alert, type Hub } from "../../../types";
+import { computeHubStats } from "../../../utils/hubStats";
+import { getHubDisplayStatus, HUB_STATUS_LABELS } from "../../../utils/hubStatus";
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -17,7 +18,7 @@ function Kpi({ label, value, hint }: { label: string; value: string; hint?: stri
   );
 }
 
-// Tổng quan site quản trị (UC11). M4 mở rộng: bản đồ mạng lưới, acknowledge/resolve cảnh báo...
+// Tổng quan site quản trị (UC11, M1): chỉ số mạng lưới, trạng thái nguồn dữ liệu, bảng Hub, cảnh báo mở.
 export function OverviewPage() {
   const hubs = useStore((s) => s.hubs);
   const slots = useStore((s) => s.parkingSlots);
@@ -26,9 +27,9 @@ export function OverviewPage() {
   const alerts = useStore((s) => s.alerts);
   const tickets = useStore((s) => s.tickets);
 
-  const stateInput = { parkingSlots: slots, chargingPorts: ports, vehicles };
+  const stateInput = useMemo(() => ({ parkingSlots: slots, chargingPorts: ports, vehicles }), [slots, ports, vehicles]);
   const totalSlots = slots.length;
-  const usedSlots = slots.filter((p) => p.status !== SlotStatus.FREE).length;
+  const usedSlots = slots.filter((p) => p.status === SlotStatus.OCCUPIED || p.status === SlotStatus.RESERVED).length;
   const availableVehicles = vehicles.filter((v) => v.status === VehicleStatus.AVAILABLE).length;
   const faults =
     vehicles.filter((v) => v.status === VehicleStatus.FAULTY).length +
@@ -37,14 +38,27 @@ export function OverviewPage() {
   const openTickets = tickets.filter((t) => t.status !== "CLOSED").length;
 
   const hubColumns: Column<Hub>[] = [
-    { header: "Hub", cell: (h) => <span className="font-medium text-slate-900">{h.name}</span> },
-    { header: "Loại", cell: (h) => <Badge value="INFO" label={h.type} /> },
+    {
+      header: "Hub",
+      cell: (h) => (
+        <Link to={`/admin/hubs/${h.hubId}`} className="font-medium text-brand-700 hover:underline">
+          {h.name}
+        </Link>
+      ),
+    },
+    {
+      header: "Trạng thái",
+      cell: (h) => {
+        const status = getHubDisplayStatus(h, computeHubStats(stateInput, h.hubId).utilization);
+        return <Badge value={status} label={HUB_STATUS_LABELS[status]} />;
+      },
+    },
     {
       header: "Mức sử dụng",
       className: "min-w-40",
       cell: (h) => {
         const u = computeHubStats(stateInput, h.hubId).utilization;
-        return <Progress value={u * 100} barClassName={utilizationBarClass(u)} label={u > OVERLOAD_THRESHOLD ? "Quá tải" : undefined} />;
+        return <Progress value={u * 100} barClassName={utilizationBarClass(u, h.thresholds.overload, h.thresholds.parkingWarning)} />;
       },
     },
     {
@@ -99,7 +113,14 @@ export function OverviewPage() {
 
       <DataSourcePanel />
 
-      <Card title="Các Hub">
+      <Card
+        title="Các Hub"
+        actions={
+          <Link to="/admin/hubs" className="text-xs font-medium text-brand-700">
+            Quản lý Hub &amp; chỗ đỗ ›
+          </Link>
+        }
+      >
         <Table columns={hubColumns} rows={hubs} rowKey={(h) => h.hubId} />
       </Card>
 
@@ -115,7 +136,7 @@ export function OverviewPage() {
           columns={alertColumns}
           rows={openAlerts}
           rowKey={(a) => a.alertId}
-          empty="Chưa có cảnh báo. Thử Metro surge ở Demo controls (khi M1 hoàn thành)."
+          empty="Chưa có cảnh báo. Thử Metro surge ở Demo controls."
         />
       </Card>
     </div>

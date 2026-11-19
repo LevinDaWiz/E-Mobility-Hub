@@ -42,6 +42,11 @@ const STATUS_CLASSES: Record<string, string> = {
   CREATED: NEUTRAL,
   RUNNING: PURPLE,
   FAILED: RED,
+  // Trạng thái Hub (hiển thị)
+  AT_RISK: YELLOW,
+  OVERLOADED: RED,
+  MAINTENANCE: BLUE,
+  UNAVAILABLE: NEUTRAL,
   // Alert severity
   INFO: BLUE,
   WARNING: YELLOW,
@@ -53,11 +58,41 @@ export function statusClass(value: string): string {
 }
 
 // Màu thanh utilization: xanh < 70%, vàng 70-85%, đỏ > 85%.
-export function utilizationBarClass(utilization: number): string {
-  if (utilization > OVERLOAD_THRESHOLD) return "bg-rose-500";
-  if (utilization >= WARNING_THRESHOLD) return "bg-amber-500";
+export function utilizationBarClass(
+  utilization: number,
+  overload: number = OVERLOAD_THRESHOLD,
+  warning: number = WARNING_THRESHOLD,
+): string {
+  if (utilization > overload) return "bg-rose-500";
+  if (utilization >= warning) return "bg-amber-500";
   return "bg-emerald-500";
 }
+
+// Nhãn + màu của trạng thái chỗ đỗ / cổng sạc trong các bảng của trang Hub (theo mockup).
+interface BadgeStyle {
+  label: string;
+  className: string;
+}
+const BADGE_BLUE = "bg-sky-100 text-sky-800 ring-sky-300";
+const BADGE_GREEN = "bg-emerald-100 text-emerald-800 ring-emerald-300";
+const BADGE_PURPLE = "bg-violet-100 text-violet-800 ring-violet-300";
+const BADGE_YELLOW = "bg-amber-100 text-amber-800 ring-amber-300";
+const BADGE_RED = "bg-rose-100 text-rose-800 ring-rose-300";
+
+export const SLOT_STATUS_BADGE: Record<string, BadgeStyle> = {
+  OCCUPIED: { label: "Occupied", className: BADGE_BLUE },
+  FREE: { label: "Available", className: BADGE_GREEN },
+  RESERVED: { label: "Reserved", className: BADGE_PURPLE },
+  MAINTENANCE: { label: "Maintenance", className: BADGE_YELLOW },
+};
+
+export const PORT_STATUS_BADGE: Record<string, BadgeStyle> = {
+  CHARGING: { label: "Charging", className: BADGE_BLUE },
+  FREE: { label: "Available", className: BADGE_GREEN },
+  RESERVED: { label: "Reserved", className: BADGE_PURPLE },
+  FAULTY: { label: "Fault", className: BADGE_RED },
+  MAINTENANCE: { label: "Maintenance", className: BADGE_YELLOW },
+};
 
 export const TOAST_CLASSES = {
   info: "border-sky-300 bg-sky-50 text-sky-900",

@@ -42,9 +42,12 @@ src/
 - **Bớt:** xoá route / mục tương ứng. Module mới: tạo `module.tsx` rồi thêm một dòng vào `routes/modules.ts`.
 - **Bản đồ trang chủ:** vị trí Hub trong `config/mapPositions.ts`.
 
+## Hub & chỗ đỗ (UC11 + UC19)
+`/admin/hubs`: danh sách Hub, chi tiết 4 tab (Tổng quan, Chỗ đỗ, Cổng sạc, Cấu hình), thêm / sửa / bảo trì tài nguyên, ngưỡng riêng từng Hub, khoá lạc quan (409), nhập CSV/JSON. Xem `src/pages/admin/hubs/README.md`. Thử nhanh: đăng nhập `admin`, bấm **⚙ Demo → Metro surge** để thấy Hub Metro thành Overloaded; **Demo → Admin khác sửa** rồi Lưu ở tab Cấu hình để thấy 409.
+
 ## Quy ước chính
 - **Thời gian:** dùng đồng hồ mô phỏng (`utils/time.ts`), không dùng `Date.now()` trong nghiệp vụ. Tua nhanh ở nút "Demo" góc phải dưới.
 - **Việc định kỳ:** `registerTickHandler(name, (now) => {...})` trong `engine/tickEngine.ts`.
 - **Thông báo:** `notify(userId | "*" | "role:OPERATOR", message, level)`.
 - **Zustand v5:** selector trả về object/mảng mới phải bọc `useShallow`.
-- Chi tiết phân công: thư mục `doc/`.
+- Chi tiết phân công: thư mục `phan-cong/`.

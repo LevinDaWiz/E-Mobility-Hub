@@ -1,4 +1,3 @@
-import { OVERLOAD_THRESHOLD } from "../config/constants";
 import { useHubStats } from "../hooks/useHubStats";
 import { utilizationBarClass } from "../styles/statusColors";
 import type { Hub } from "../types";
@@ -7,7 +6,7 @@ import { Badge, Card, Progress } from "./ui";
 // Thẻ tóm tắt một Hub (mức sử dụng chỗ đỗ, xe sẵn sàng, cổng sạc, lỗi). Dùng ở app mobile và site quản trị.
 export function HubCard({ hub }: { hub: Hub }) {
   const stats = useHubStats(hub.hubId);
-  const overloaded = stats.utilization > OVERLOAD_THRESHOLD;
+  const overloaded = stats.utilization > hub.thresholds.overload;
 
   return (
     <Card title={hub.name} actions={<Badge value={overloaded ? "CRITICAL" : "INFO"} label={hub.type} />}>
@@ -15,7 +14,7 @@ export function HubCard({ hub }: { hub: Hub }) {
       <Progress
         value={stats.utilization * 100}
         label={`Chỗ đỗ: ${stats.occupiedSlots + stats.reservedSlots}/${stats.totalSlots}`}
-        barClassName={utilizationBarClass(stats.utilization)}
+        barClassName={utilizationBarClass(stats.utilization, hub.thresholds.overload, hub.thresholds.parkingWarning)}
       />
       <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
         <div className="rounded-md bg-slate-50 py-2">

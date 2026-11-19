@@ -6,12 +6,12 @@ Dự án: `E-Mobility-Hub` (Vite + React 19 + TypeScript). **Chỉ frontend**, t
 
 | # | Vai trò | Use case | Engine / NIFR | File hướng dẫn |
 |---|---------|----------|---------------|----------------|
-| M1 | Core, Tích hợp, Báo cáo, Admin | UC17, UC19, UC20, UC21, UC22 | NIFR-02 (cập nhật trạng thái), điều phối tick | `01_Member1_Core_Integration.md` |
+| M1 | Core, Tích hợp, Báo cáo, Admin, Giám sát & cấu hình Hub | UC11, UC17, UC19, UC20, UC21, UC22 | NIFR-02 (cập nhật trạng thái), điều phối tick | `01_Member1_Core_Integration.md` |
 | M2 | Sinh viên – xe dùng chung | UC01, UC02, UC03, UC04, UC06 | NIFR-01 (hết hạn đặt xe) | `02_Member2_Student_SharedVehicle.md` |
 | M3 | Sinh viên – xe cá nhân, Đỗ & Sạc | UC05, UC07, UC08, UC09, UC10, UC12 | NIFR-01 (hết hạn đặt chỗ), NIFR-05, NIFR-06 | `03_Member3_Parking_Charging.md` |
-| M4 | Vận hành & Mô phỏng | UC11, UC13, UC14, UC15, UC16, UC18 | NIFR-03, NIFR-04 | `04_Member4_Operator_Simulation.md` |
+| M4 | Vận hành & Mô phỏng | UC13, UC14, UC15, UC16, UC18 | NIFR-03, NIFR-04 | `04_Member4_Operator_Simulation.md` |
 
-Đủ 22 UC. M1 làm nền tảng trước nên nhẹ về nghiệp vụ ở tuần đầu, M2 nhẹ nhất về số UC nhưng có luồng dài nhất (đặt → nhận → trả).
+Chi tiết UC11 + UC19 (Hub & chỗ đỗ): `05_UC11_UC19_Hub_Monitoring_Config.md`. Đủ 22 UC. M1 làm nền tảng trước nên nhẹ về nghiệp vụ ở tuần đầu, M2 nhẹ nhất về số UC nhưng có luồng dài nhất (đặt → nhận → trả).
 
 ## 2. Công nghệ chung
 - React Router (`react-router-dom`), **Zustand** (state tập trung, thay cho DB), Recharts (biểu đồ), **Tailwind CSS** (đã chốt; cài theo hướng dẫn Vite của Tailwind, dùng `@tailwindcss/vite`).
@@ -47,6 +47,8 @@ src/
 
 **Quy tắc vàng:** mỗi người chỉ sửa file trong thư mục mình sở hữu. Cần gì ở thư mục người khác → dùng hàm họ export (mục 5) hoặc nhắn họ.
 
+> **Cập nhật 4 – UC11 + UC19 đã có:** màn hình Hub & chỗ đỗ làm theo mockup (danh sách, chi tiết 4 tab, form thêm/sửa, chặn vô hiệu hóa, 409). **UC11 chuyển từ M4 sang M1.** Mỗi Hub có ngưỡng riêng (`hub.thresholds`), slot có `kind/vehicleId/sensorId`, cổng sạc có `kind/dockId`; thêm `SlotStatus.MAINTENANCE` và `PortStatus.MAINTENANCE`. Xem file `05_...`.
+>
 > **Cập nhật 2 – Sườn giao diện:** đã có sườn 2 giao diện theo mockup Miro (`E-Mobility-Hub-skeleton.zip`): **app mobile `/app/...`** cho sinh viên và **site quản trị `/admin/...`** có sidebar; luồng đăng nhập SSO giả lập (UC20) đủ 5 màn hình; chặn truy cập theo vai trò. Mỗi người chỉ thêm route/mục menu trong `module.tsx` của mình (xem README trong project). Bảng map nhanh:
 >
 > | Màn hình | Đường dẫn | Người làm |
@@ -54,9 +56,9 @@ src/
 > | Tìm xe dùng chung / Chuyến đi / Hoạt động | `/app/shared`, `/app/trips`, `/app/activity` | M2 |
 > | Đặt chỗ đỗ / Lịch sạc / Đăng ký sạc / Xe cá nhân | `/app/parking`, `/app/charging`, `/app/charging/new`, `/app/personal` | M3 |
 > | Hỗ trợ & báo cáo sự cố (phía SV) | `/app/support` | M4 |
-> | Tổng quan, Cảnh báo & quá tải, Phương tiện, Điều phối, Sự cố, Mô phỏng | `/admin`, `/admin/overload`, `/admin/vehicles[/dispatch\|/incidents]`, `/admin/simulation` | M4 |
+> | Cảnh báo & quá tải, Phương tiện, Điều phối, Sự cố, Mô phỏng | `/admin/overload`, `/admin/vehicles[/dispatch\|/incidents]`, `/admin/simulation` | M4 |
 > | Sạc & Lịch sạc | `/admin/charging` | M3 |
-> | Hub & chỗ đỗ, Cài đặt, Báo cáo & Thống kê | `/admin/hubs`, `/admin/settings`, `/admin/reports` | M1 |
+> | Tổng quan (UC11), Hub & chỗ đỗ: danh sách / chi tiết / chỗ đỗ / cổng sạc / cấu hình (UC11 + UC19), Cài đặt, Báo cáo & Thống kê | `/admin`, `/admin/hubs`, `/admin/hubs/:hubId[/slots\|/ports\|/config]`, `/admin/settings`, `/admin/reports` | M1 |
 >
 > Mã sinh viên mẫu đổi thành MSSV: 2112345 (Nguyễn Văn An), 2112346, 2112347, 2112348.
 
