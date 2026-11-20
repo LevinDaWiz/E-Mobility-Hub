@@ -1,20 +1,12 @@
 import { PlaceholderPage } from "../../components/ui";
 import type { AppModule } from "../../routes/types";
-import { OverviewPage } from "./OverviewPage";
 
-// M4: site quản trị – Tổng quan (UC11), Quá tải (UC15), Phương tiện (UC13, UC14).
+// M4: site quản trị – Quá tải (UC15), Phương tiện (UC13, UC14). Tổng quan và Hub & chỗ đỗ (UC11, UC19) do M1 làm.
 export const operatorModule: AppModule = {
   id: "operator",
   owner: "M4",
   area: "admin",
   adminNav: [
-    {
-      label: "Tổng quan",
-      path: "/admin",
-      roles: ["OPERATOR", "ADMIN", "MANAGEMENT"],
-      order: 10,
-      children: [{ label: "Cảnh báo & quá tải", path: "/admin/overload" }],
-    },
     {
       label: "Phương tiện",
       path: "/admin/vehicles",
@@ -27,7 +19,6 @@ export const operatorModule: AppModule = {
     },
   ],
   routes: [
-    { index: true, element: <OverviewPage /> },
     {
       path: "/admin/overload",
       element: (
@@ -45,7 +36,7 @@ export const operatorModule: AppModule = {
         <PlaceholderPage
           owner="M4"
           title="Phương tiện"
-          ucs={[{ code: "UC11", name: "Danh sách xe toàn mạng: vị trí, pin, trạng thái" }]}
+          ucs={[{ code: "—", name: "Danh sách xe toàn mạng: vị trí, pin, trạng thái (trang Hub có link sang đây)" }]}
           file="src/pages/operator/module.tsx"
         />
       ),

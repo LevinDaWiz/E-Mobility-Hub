@@ -6,9 +6,11 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  // md: hộp thoại nhỏ; lg: form nhiều cột (thêm Hub, thêm chỗ đỗ...).
+  size?: "md" | "lg";
 }
 
-export function Modal({ open, title, onClose, children, footer }: ModalProps) {
+export function Modal({ open, title, onClose, children, footer, size = "md" }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -30,7 +32,7 @@ export function Modal({ open, title, onClose, children, footer }: ModalProps) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-w-md rounded-xl bg-white shadow-xl"
+        className={`max-h-[92vh] w-full overflow-y-auto rounded-xl bg-white shadow-xl ${size === "lg" ? "max-w-3xl" : "max-w-md"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="border-b border-slate-100 px-5 py-3 text-base font-semibold">{title}</header>

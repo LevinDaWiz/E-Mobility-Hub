@@ -3,6 +3,12 @@ export enum PortStatus {
   RESERVED = "RESERVED",
   CHARGING = "CHARGING",
   FAULTY = "FAULTY",
+  MAINTENANCE = "MAINTENANCE",
+}
+
+export enum PortKind {
+  FAST = "FAST",
+  STANDARD = "STANDARD",
 }
 
 export enum SessionStatus {
@@ -23,9 +29,12 @@ export interface ChargingPort {
   portId: string;
   powerKw: number;
   status: PortStatus;
+  kind: PortKind;
 
   // ID biểu diễn association Hub 1--* ChargingPort.
   hubId: string;
+  dockId: string;
+  updatedAt: string;
 }
 
 export interface ChargingRequest {

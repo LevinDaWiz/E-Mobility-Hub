@@ -1,8 +1,11 @@
 import {
+  HubOperationalStatus,
   HubType,
+  PortKind,
   PortStatus,
   RequestStatus,
   SessionStatus,
+  SlotKind,
   SlotStatus,
   TripStatus,
   VehicleStatus,
@@ -19,6 +22,7 @@ import {
   type Trip,
   type Vehicle,
 } from "../types";
+import { DEFAULT_HUB_THRESHOLDS } from "../config/constants";
 
 // Dữ liệu mẫu cố định (không random) để demo lặp lại được. createSeed() trả về
 // đối tượng MỚI mỗi lần gọi nên có thể dùng cho "reset dữ liệu".
@@ -42,6 +46,7 @@ interface HubDef {
   name: string;
   type: HubType;
   location: string;
+  area: string;
   slots: number;
   ports: number;
   // Số xe cá nhân đang đỗ sẵn (chiếm slot nhưng không phải xe dùng chung).
@@ -54,6 +59,7 @@ const HUB_DEFS: HubDef[] = [
     name: "Ga Metro Làng Đại học",
     type: HubType.METRO,
     location: "Ga Metro Đại học Quốc gia, TP. Thủ Đức",
+    area: "Ga Metro",
     slots: 12,
     ports: 3,
     personalParked: 5, // 5 xe dùng chung + 5 cá nhân = 10/12 ≈ 83% (gần ngưỡng quá tải)
@@ -63,6 +69,7 @@ const HUB_DEFS: HubDef[] = [
     name: "KTX Khu A",
     type: HubType.DORM,
     location: "Ký túc xá Khu A, ĐHQG-HCM",
+    area: "KTX Khu A",
     slots: 16,
     ports: 4,
     personalParked: 6,
@@ -72,6 +79,7 @@ const HUB_DEFS: HubDef[] = [
     name: "KTX Khu B",
     type: HubType.DORM,
     location: "Ký túc xá Khu B, ĐHQG-HCM",
+    area: "KTX Khu B",
     slots: 16,
     ports: 4,
     personalParked: 3,
@@ -81,6 +89,7 @@ const HUB_DEFS: HubDef[] = [
     name: "ĐH Bách Khoa (Cơ sở 2)",
     type: HubType.CAMPUS,
     location: "Trường ĐH Bách Khoa, Dĩ An",
+    area: "Bách Khoa",
     slots: 14,
     ports: 3,
     personalParked: 3,
@@ -90,6 +99,7 @@ const HUB_DEFS: HubDef[] = [
     name: "ĐH Khoa học Tự nhiên",
     type: HubType.CAMPUS,
     location: "Trường ĐH Khoa học Tự nhiên, ĐHQG-HCM",
+    area: "KHTN",
     slots: 12,
     ports: 3,
     personalParked: 2,
@@ -99,6 +109,7 @@ const HUB_DEFS: HubDef[] = [
     name: "Trạm Dịch vụ & Bảo trì",
     type: HubType.SERVICE,
     location: "Khu dịch vụ trung tâm, ĐHQG-HCM",
+    area: "Khu dịch vụ",
     slots: 10,
     ports: 2,
     personalParked: 0,
@@ -152,8 +163,11 @@ const VEHICLE_SEEDS: VehicleSeed[] = [
   ["HUB-SERVICE-01", EB, 30, AV],
 ];
 
-// Công suất cổng sạc xoay vòng (kW).
-const PORT_POWER_KW = [2, 2, 3.5, 3.5];
+// Cổng sạc xoay vòng: nhanh 7 kW, thường 3,5 kW.
+const PORT_SPECS = [
+  { kind: PortKind.FAST, powerKw: 7 },
+  { kind: PortKind.STANDARD, powerKw: 3.5 },
+];
 
 const pad = (n: number, width = 2) => String(n).padStart(width, "0");
 
@@ -161,12 +175,22 @@ export function createSeed(): SeedData {
   const now = Date.now();
   const iso = (offsetMs: number) => new Date(now + offsetMs).toISOString();
 
-  const hubs: Hub[] = HUB_DEFS.map(({ hubId, name, type, location, slots }) => ({
+  const hubs: Hub[] = HUB_DEFS.map(({ hubId, name, type, location, area, slots }) => ({
     hubId,
     name,
     type,
     location,
+    area,
     parkingCapacity: slots,
+    operationalStatus: HubOperationalStatus.AVAILABLE,
+    // Trạm dịch vụ chủ yếu để bảo trì nên không yêu cầu số xe khả dụng tối thiểu.
+    thresholds: {
+      ...DEFAULT_HUB_THRESHOLDS,
+      minAvailableVehicles: type === HubType.SERVICE ? 0 : DEFAULT_HUB_THRESHOLDS.minAvailableVehicles,
+    },
+    version: 1,
+    updatedBy: "Admin01",
+    updatedAt: iso(-45 * 60_000),
   }));
 
   const vehicles: Vehicle[] = VEHICLE_SEEDS.map(([hubId, type, batteryLevel, status], i) => ({
@@ -184,16 +208,22 @@ export function createSeed(): SeedData {
 
   for (const def of HUB_DEFS) {
     const atHub = vehicles.filter((v) => v.currentHubId === def.hubId);
-    const occupied = Math.min(
-      def.slots,
-      atHub.filter((v) => v.status !== VehicleStatus.IN_USE).length + def.personalParked,
-    );
+    // Xe dùng chung đang đỗ (không tính xe đang đi) chiếm slot SHARED, rồi tới xe cá nhân (slot PERSONAL).
+    const parkedShared = atHub.filter((v) => v.status !== VehicleStatus.IN_USE);
+    const occupied = Math.min(def.slots, parkedShared.length + def.personalParked);
 
     for (let i = 0; i < def.slots; i++) {
+      const code = `S${pad(i + 1)}`;
+      const isShared = i < parkedShared.length;
+      const isOccupied = i < occupied;
       parkingSlots.push({
-        slotId: `${def.hubId}-S${pad(i + 1)}`,
+        slotId: `${def.hubId}-${code}`,
         hubId: def.hubId,
-        status: i < occupied ? SlotStatus.OCCUPIED : SlotStatus.FREE,
+        status: isOccupied ? SlotStatus.OCCUPIED : SlotStatus.FREE,
+        kind: isOccupied ? (isShared ? SlotKind.SHARED : SlotKind.PERSONAL) : i % 2 === 0 ? SlotKind.SHARED : SlotKind.PERSONAL,
+        vehicleId: isShared ? parkedShared[i].vehicleId : null,
+        sensorId: `SNS-${def.hubId.replace("HUB-", "")}-${code}`,
+        updatedAt: iso(-((i % 7) + 1) * 60_000),
       });
     }
 
@@ -201,11 +231,15 @@ export function createSeed(): SeedData {
     for (let i = 0; i < def.ports; i++) {
       const portId = `${def.hubId}-P${i + 1}`;
       const vehicle = charging[i];
+      const spec = PORT_SPECS[i % PORT_SPECS.length];
       chargingPorts.push({
         portId,
         hubId: def.hubId,
-        powerKw: PORT_POWER_KW[i % PORT_POWER_KW.length],
+        powerKw: spec.powerKw,
+        kind: spec.kind,
+        dockId: `DOCK-${def.hubId.replace("HUB-", "")}-${i + 1}`,
         status: vehicle ? PortStatus.CHARGING : PortStatus.FREE,
+        updatedAt: iso(-((i % 5) + 1) * 60_000),
       });
 
       if (vehicle) {

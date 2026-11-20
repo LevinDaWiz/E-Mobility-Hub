@@ -1,6 +1,6 @@
 # M1 – Core, Tích hợp, Báo cáo, Admin
 
-**UC phụ trách:** UC20 (xác thực), UC21 (Metro), UC22 (cập nhật trạng thái IoT/mô phỏng), UC17 (báo cáo thống kê), UC19 (cấu hình Hub & tài nguyên)
+**UC phụ trách:** UC11 (giám sát mạng lưới Hub), UC19 (cấu hình Hub & tài nguyên), UC20 (xác thực), UC21 (Metro), UC22 (cập nhật trạng thái IoT/mô phỏng), UC17 (báo cáo thống kê)
 **NIFR:** NIFR-02 (tự cập nhật trạng thái), điều phối vòng lặp tick cho NIFR khác
 **Nhánh:** `m1-core`
 
@@ -22,22 +22,29 @@
 - [ ] Cập nhật README gốc (cách chạy `npm i && npm run dev`).
 
 ## B. Use case
-### UC20 – Xác thực sinh viên
+### UC20 – Xác thực sinh viên (ĐÃ CÓ SƯỜN: 5 màn hình + `services/authService.ts` + `RequireRole`)
+- Còn lại: tinh chỉnh giao diện theo mockup, thay `mockAuthAdapter` khi nối hệ thống thật, xoá khung "Tài khoản demo" trước khi nộp.
 - Trang login giả lập: chọn tài khoản mẫu (hoặc nhập token → `MockAuthAdapter implements AuthAdapter`).
 - `AuthService.login(token)`, `logout()`; lưu `CurrentUser` trong store; chặn route theo vai trò.
 - Luồng lỗi: token sai/hết hạn → thông báo lỗi.
 
-### UC21 – Cung cấp dữ liệu Metro
+### UC21 – Cung cấp dữ liệu Metro (ĐÃ XONG: `services/metroService.ts`, nút Metro surge ở Demo panel)
+- Còn lại: thay `mockMetroAdapter` khi có API Metro thật; M4 dùng `metroData` + `metroSurge` cho What-if METRO_SURGE.
 - `MockMetroAdapter implements MetroAdapter` trả `MetroData` (lượng khách theo giờ, hard-code).
 - Trang/nút **"Metro surge"** (trong Admin hoặc panel demo): đẩy lượng khách tăng đột biến vào store → M4 dùng cho cảnh báo và What-if METRO_SURGE.
 - Kiểm tra schema dữ liệu (dữ liệu sai → từ chối, ghi cảnh báo).
 
-### UC22 + NIFR-02 – Cập nhật dữ liệu trạng thái
+### UC22 + NIFR-02 – Cập nhật dữ liệu trạng thái (ĐÃ XONG: `engine/iotSimulator.ts`, `engine/m1Handlers.ts`, `services/faultInjection.ts`)
+- Lưu ý cho M3: bộ giả lập IoT **không** đụng pin xe đang CHARGING; M3 tự cập nhật theo phiên sạc. Gây lỗi cổng đang sạc chỉ đặt cổng FAULTY, M3/M4 xử lý phiên sạc bị ảnh hưởng.
+- Lưu ý cho M4: gây lỗi tạo `Alert` (PORT_FAULT/VEHICLE_FAULT) và thông báo vận hành; **ticket** do NIFR-04 của M4 tạo khi thấy thiết bị FAULTY chưa có ticket.
 - `engine/iotSimulator.ts implements IoTDataAdapter`: định kỳ phát `StateUpdate` (pin xe đang IN_USE giảm, xe CHARGING tăng nếu không có session do M3 quản lý, ngẫu nhiên báo cổng/xe lỗi ở mức rất thấp, có nút bật/tắt).
 - `StateUpdateService.applyStateUpdate / validateUpdate`: dữ liệu hợp lệ → ghi store; không hợp lệ → bỏ qua và log.
 - Có nút "Gây lỗi cổng sạc X" / "Gây lỗi xe Y" cho demo → gọi `OperationsService.handleIncident` của M4.
 
-### UC19 – Quản lý cấu hình Hub và tài nguyên (Admin)
+### UC11 + UC19 – Hub & chỗ đỗ (ĐÃ CÓ BẢN ĐẦU theo mockup)
+- Xem `05_UC11_UC19_Hub_Monitoring_Config.md` (mô tả đầy đủ, mapping mockup, API, quy tắc, việc còn lại).
+
+### UC19 – (ghi chú gốc) Quản lý cấu hình Hub và tài nguyên (Admin)
 - Danh sách Hub, form sửa `HubConfig` (`parkingCapacity`, `chargingPorts`), nút thêm slot/cổng sạc.
 - `HubConfigService.updateHubConfig`, `addResource`; validate (không giảm dưới số chỗ đang dùng).
 - Thay đổi phải phản ánh ngay ở các trang của M2, M3, M4.
@@ -58,4 +65,4 @@
 ## E. Tiêu chí hoàn thành
 - Người khác `git pull` là chạy được ngay, thấy đủ route và dữ liệu mẫu.
 - Reset dữ liệu hoạt động; đổi vai trò không làm mất state.
-- UC17, UC19, UC20, UC21, UC22 đạt Definition of Done ở README chung.
+- UC11, UC17, UC19, UC20, UC21, UC22 đạt Definition of Done ở README chung.
