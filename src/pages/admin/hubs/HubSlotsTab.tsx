@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Badge, Button, Card, Pagination, StatCard, Table, type Column } from "../../../components/ui";
 import { usePagination } from "../../../hooks/usePagination";
 import { importSlots, setSlotMaintenance } from "../../../services/hubConfigService";
@@ -52,7 +52,19 @@ export function HubSlotsTab() {
       header: "Trạng thái",
       cell: (s) => <Badge value={s.status} label={SLOT_STATUS_BADGE[s.status].label} className={SLOT_STATUS_BADGE[s.status].className} />,
     },
-    { header: "Phương tiện", cell: (s) => (s.status === SlotStatus.OCCUPIED ? (s.vehicleId ?? "Xe cá nhân") : "—") },
+    {
+      header: "Phương tiện",
+      cell: (s) =>
+        s.status !== SlotStatus.OCCUPIED ? (
+          "—"
+        ) : s.vehicleId ? (
+          <Link to={`/admin/vehicles/${s.vehicleId}`} className="font-medium text-brand-700 hover:underline">
+            {s.vehicleId}
+          </Link>
+        ) : (
+          "Xe cá nhân"
+        ),
+    },
     { header: "Cập nhật", cell: (s) => formatTime(s.updatedAt) },
     ...(canEdit
       ? [

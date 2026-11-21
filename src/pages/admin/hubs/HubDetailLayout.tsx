@@ -9,10 +9,11 @@ const TABS = [
   { label: "Tổng quan", suffix: "", end: true },
   { label: "Chỗ đỗ", suffix: "/slots", end: false },
   { label: "Cổng sạc", suffix: "/ports", end: false },
+  { label: "Phương tiện", suffix: "/vehicles", end: false },
   { label: "Cấu hình", suffix: "/config", end: false },
 ];
 
-// Khung chi tiết một Hub: tiêu đề, trạng thái, 4 tab (Tổng quan, Chỗ đỗ, Cổng sạc, Cấu hình).
+// Khung chi tiết một Hub: tiêu đề, trạng thái, 5 tab (Tổng quan, Chỗ đỗ, Cổng sạc, Phương tiện, Cấu hình).
 export function HubDetailLayout() {
   const { hubId = "" } = useParams();
   const { pathname } = useLocation();

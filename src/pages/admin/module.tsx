@@ -7,6 +7,7 @@ import { HubListPage } from "./hubs/HubListPage";
 import { HubOverviewTab } from "./hubs/HubOverviewTab";
 import { HubPortsTab } from "./hubs/HubPortsTab";
 import { HubSlotsTab } from "./hubs/HubSlotsTab";
+import { HubVehiclesTab } from "./hubs/HubVehiclesTab";
 
 // M1: UC11 (giám sát Hub: Tổng quan, danh sách và chi tiết Hub) + UC19 (cấu hình Hub, chỗ đỗ, cổng sạc).
 // Chi tiết: src/pages/admin/hubs/README.md
@@ -35,6 +36,7 @@ export const adminModule: AppModule = {
         { index: true, element: <HubOverviewTab /> },
         { path: "/admin/hubs/:hubId/slots", element: <HubSlotsTab /> },
         { path: "/admin/hubs/:hubId/ports", element: <HubPortsTab /> },
+        { path: "/admin/hubs/:hubId/vehicles", element: <HubVehiclesTab /> },
         { path: "/admin/hubs/:hubId/config", element: <HubConfigTab /> },
       ],
     },
