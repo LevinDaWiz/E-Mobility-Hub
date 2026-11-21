@@ -1,4 +1,4 @@
-import { IOT_DRAIN_PCT_PER_MIN, IOT_RANDOM_FAULT_PROB } from "../config/constants";
+import { IOT_RANDOM_FAULT_PROB } from "../config/constants";
 import { useStore } from "../store";
 import {
   PortStatus,
@@ -33,7 +33,7 @@ class IoTSimulator implements IoTDataAdapter {
 
   // Tính các cập nhật phát sinh từ lần phát trước tới thời điểm mô phỏng hiện tại.
   async fetchLatestState(): Promise<StateUpdate[]> {
-    const { vehicles, chargingPorts, clock, iot } = useStore.getState();
+    const { vehicles, chargingPorts, clock, iot, settings } = useStore.getState();
     const now = clock.now;
     const elapsedMin = this.lastEmitAt === null ? 0 : Math.max(0, now - this.lastEmitAt) / 60_000;
     this.lastEmitAt = now;
@@ -42,7 +42,7 @@ class IoTSimulator implements IoTDataAdapter {
 
     for (const v of vehicles) {
       if (v.status === VehicleStatus.IN_USE && elapsedMin > 0 && v.batteryLevel > 0) {
-        const next = Math.max(0, Math.round((v.batteryLevel - IOT_DRAIN_PCT_PER_MIN * elapsedMin) * 100) / 100);
+        const next = Math.max(0, Math.round((v.batteryLevel - settings.iotDrainPctPerMin * elapsedMin) * 100) / 100);
         updates.push({ sourceId: SOURCE_ID, timestamp, payload: { entity: "vehicle", id: v.vehicleId, batteryLevel: next } });
       }
       if (iot.randomFaults && v.status === VehicleStatus.AVAILABLE && Math.random() < IOT_RANDOM_FAULT_PROB) {

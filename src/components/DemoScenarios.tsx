@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { METRO_SURGE_MULTIPLIER } from "../config/constants";
 import { iotSimulator } from "../engine/iotSimulator";
 import { injectFault, listFaultTargets, repairFault, type FaultEntity } from "../services/faultInjection";
 import { simulateOtherAdminEdit } from "../services/hubConfigService";
+import { simNowIso } from "../utils/time";
 import { endMetroSurge, getMetroFlow, ingestMetroData, startMetroSurge } from "../services/metroService";
 import { useStore } from "../store";
 import { PortStatus, VehicleStatus } from "../types";
@@ -14,6 +14,7 @@ const selectClass = "w-full rounded-md border border-slate-300 bg-white px-2 py-
 // Kịch bản demo của M1: Metro surge (UC21), IoT (UC22), gây lỗi cổng / xe.
 export function DemoScenarios() {
   const surge = useStore((s) => s.metroSurge);
+  const surgeMultiplier = useStore((s) => s.settings.metroSurgeMultiplier);
   const iot = useStore((s) => s.iot);
   const setIotEnabled = useStore((s) => s.setIotEnabled);
   const setIotRandomFaults = useStore((s) => s.setIotRandomFaults);
@@ -46,7 +47,7 @@ export function DemoScenarios() {
         </p>
         <div className="flex flex-wrap gap-1.5">
           <Button size="sm" variant="danger" disabled={surge.active} onClick={() => void startMetroSurge()}>
-            Metro surge ×{METRO_SURGE_MULTIPLIER}
+            Metro surge ×{surgeMultiplier}
           </Button>
           <Button size="sm" variant="secondary" disabled={!surge.active} onClick={() => void endMetroSurge()}>
             Kết thúc surge
@@ -78,7 +79,7 @@ export function DemoScenarios() {
           onClick={() =>
             iotSimulator.emit({
               sourceId: "demo-invalid",
-              timestamp: new Date().toISOString(),
+              timestamp: simNowIso(),
               payload: { entity: "vehicle", id: "VH-001", batteryLevel: 999 },
             })
           }

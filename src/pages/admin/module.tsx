@@ -1,4 +1,3 @@
-import { PlaceholderPage } from "../../components/ui";
 import type { AppModule } from "../../routes/types";
 import { OverviewPage } from "./overview/OverviewPage";
 import { HubConfigTab } from "./hubs/HubConfigTab";
@@ -8,6 +7,7 @@ import { HubOverviewTab } from "./hubs/HubOverviewTab";
 import { HubPortsTab } from "./hubs/HubPortsTab";
 import { HubSlotsTab } from "./hubs/HubSlotsTab";
 import { HubVehiclesTab } from "./hubs/HubVehiclesTab";
+import { SettingsPage } from "./settings/SettingsPage";
 
 // M1: UC11 (giám sát Hub: Tổng quan, danh sách và chi tiết Hub) + UC19 (cấu hình Hub, chỗ đỗ, cổng sạc).
 // Chi tiết: src/pages/admin/hubs/README.md
@@ -40,16 +40,6 @@ export const adminModule: AppModule = {
         { path: "/admin/hubs/:hubId/config", element: <HubConfigTab /> },
       ],
     },
-    {
-      path: "/admin/settings",
-      element: (
-        <PlaceholderPage
-          owner="M1"
-          title="Cài đặt"
-          ucs={[{ code: "—", name: "Tuỳ chọn hệ thống chung (ngưỡng riêng từng Hub chỉnh ở tab Cấu hình của Hub)" }]}
-          file="src/pages/admin/module.tsx"
-        />
-      ),
-    },
+    { path: "/admin/settings", element: <SettingsPage /> },
   ],
 };

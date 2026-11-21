@@ -4,6 +4,8 @@ import type { ExportFormat, Report, ReportData, ReportDetail, ReportFilters, Rep
 import { makeId } from "../utils/id";
 import { buildCsv, buildPdf, buildXlsx, reportToSheets } from "../utils/fileExport";
 import { notify } from "./notificationService";
+import { buildLiveFacts } from "./reportLiveData";
+import { getSettings } from "./settingsService";
 import {
   addDays,
   buildReport,
@@ -13,7 +15,7 @@ import {
   ReportError,
   TOPIC_FILE_NAMES,
   TOPIC_TITLES,
-  validateFilters,
+  validateFilters as validateFiltersRaw,
   type FilterErrors,
   type HubInfo,
 } from "./reportEngine";
@@ -40,7 +42,9 @@ export function hubInfos(): HubInfo[] {
   }));
 }
 
-export { validateFilters };
+// Khoảng thời gian tối đa lấy từ Cài đặt (Cài đặt > Báo cáo).
+export const validateFilters = (filters: ReportFilters, today: string): FilterErrors =>
+  validateFiltersRaw(filters, today, getSettings().reportMaxRangeDays);
 export type { FilterErrors };
 
 // ---------- tạo báo cáo ----------
@@ -54,7 +58,10 @@ export async function generateReport(topic: ReportTopic, filters: ReportFilters)
   if (state().reportFailureMode) throw new ReportError("FAILED", "Lỗi kết nối hoặc dữ liệu không đủ.");
 
   const now = new Date(state().clock.now).toISOString();
-  const data = buildReport({ topic, filters, hubs: hubInfos(), today: todayKey(), generatedAt: now });
+  const today = todayKey();
+  // Ngày hôm nay dùng số liệu thật từ hệ thống; các ngày trước là dữ liệu mẫu (xem reportLiveData.ts).
+  const live = buildLiveFacts(today, filters.vehicle);
+  const data = buildReport({ topic, filters, hubs: hubInfos(), today, generatedAt: now, live });
   const report: Report = {
     reportId: makeId("RP"),
     type: topic,
@@ -188,7 +195,14 @@ export async function runDueSchedules(nowMs: number): Promise<number> {
       state().upsertSchedule({ ...schedule, lastRunAt: nowIso });
 
       if (state().reportFailureMode) throw new ReportError("FAILED", "Lỗi kết nối hoặc dữ liệu không đủ.");
-      const data = buildReport({ topic: schedule.topic, filters, hubs: hubInfos(), today: to, generatedAt: nowIso });
+      const data = buildReport({
+        topic: schedule.topic,
+        filters,
+        hubs: hubInfos(),
+        today: to,
+        generatedAt: nowIso,
+        live: buildLiveFacts(to, filters.vehicle),
+      });
       const file = buildExportFile(data, schedule.format);
       state().addReport({
         reportId: makeId("RP"),

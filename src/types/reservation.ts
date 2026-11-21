@@ -15,4 +15,7 @@ export interface VehicleReservation {
   // và Vehicle 1--* VehicleReservation trong class diagram.
   studentId: string;
   vehicleId: string;
+
+  // Hub nơi xe đang đỗ lúc đặt (để báo cáo theo Hub). Bản ghi cũ có thể không có.
+  hubId?: string;
 }

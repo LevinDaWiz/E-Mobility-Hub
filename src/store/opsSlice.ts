@@ -74,6 +74,13 @@ export interface OpsSimulationResult extends SimulationResult {
   recommendations?: OpsRecommendation[];
 }
 
+// Tạm khoá nhận xe mới tại một Hub (phương án "Tạm khóa cổng tiếp nhận" của UC15). Hết hạn theo giờ mô phỏng.
+export interface HubIntakeLock {
+  hubId: string;
+  until: number; // ms epoch (giờ mô phỏng)
+  reason: string;
+}
+
 export interface OpsSliceData {
   alerts: OpsAlert[];
   dispatchOrders: OpsDispatchOrder[];
@@ -82,6 +89,7 @@ export interface OpsSliceData {
   simulationRuns: OpsSimulationRun[];
   simulationResults: OpsSimulationResult[];
   activeSimulationId: string | null;
+  intakeLocks: HubIntakeLock[];
 }
 
 export interface OpsSliceActions {
@@ -103,12 +111,16 @@ export interface OpsSliceActions {
   upsertSimulationResult: (r: OpsSimulationResult) => void;
   setActiveSimulationId: (id: string | null) => void;
   rejectSimulationRun: (runId: string, reason: string) => void;
+
+  lockHubIntake: (lock: HubIntakeLock) => void;
+  unlockHubIntake: (hubId: string) => void;
 }
 
 export type OpsSlice = OpsSliceData & OpsSliceActions;
 
-export function initialOpsState(): OpsSliceData {
-  const nowIso = new Date().toISOString();
+// now: thời điểm mô phỏng ban đầu (ms) để dữ liệu mẫu khớp đồng hồ mô phỏng, không dùng giờ thật.
+export function initialOpsState(now: number): OpsSliceData {
+  const nowIso = new Date(now).toISOString();
   return {
     alerts: [
       {
@@ -150,6 +162,7 @@ export function initialOpsState(): OpsSliceData {
     simulationRuns: [],
     simulationResults: [],
     activeSimulationId: null,
+    intakeLocks: [],
   };
 }
 
@@ -216,4 +229,9 @@ export const createOpsSlice: StateCreator<AppState, [], [], OpsSliceActions> = (
         r.runId === runId ? { ...r, status: "REJECTED" as ExtendedRunStatus, rejectionReason: reason } : r
       ),
     })),
+
+  // Mỗi Hub chỉ có một khoá; khoá mới thay khoá cũ.
+  lockHubIntake: (lock) =>
+    set((s) => ({ intakeLocks: [...s.intakeLocks.filter((l) => l.hubId !== lock.hubId), lock] })),
+  unlockHubIntake: (hubId) => set((s) => ({ intakeLocks: s.intakeLocks.filter((l) => l.hubId !== hubId) })),
 });

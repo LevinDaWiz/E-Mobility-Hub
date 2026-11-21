@@ -2,13 +2,13 @@ import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { DemoPanel } from "../components/DemoPanel";
 import { ToastHost } from "../components/ui";
-import { registerM1TickHandlers } from "../engine/m1Handlers";
+import { registerAllTickHandlers } from "../engine/registerHandlers";
 import { startTickEngine, stopTickEngine } from "../engine/tickEngine";
 
-// Vỏ ngoài cùng cho mọi màn hình: chạy tick engine (+ việc định kỳ của M1), toast, Demo panel.
+// Vỏ ngoài cùng cho mọi màn hình: chạy tick engine (+ việc định kỳ của các module), toast, Demo panel.
 export function RootLayout() {
   useEffect(() => {
-    const unregister = registerM1TickHandlers();
+    const unregister = registerAllTickHandlers();
     startTickEngine();
     return () => {
       stopTickEngine();

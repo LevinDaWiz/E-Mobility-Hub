@@ -35,6 +35,11 @@ export function ReportResultPage() {
           <div className="mt-2">
             <FilterChips data={data} />
           </div>
+          <p className="mt-2 max-w-3xl text-[11px] text-slate-500">
+            {data.liveDate
+              ? `Số liệu ngày ${formatDateVi(data.liveDate)} (hôm nay) lấy từ hoạt động thật trong hệ thống và chưa hết ngày. Các ngày trước là dữ liệu mẫu.`
+              : "Báo cáo này dùng dữ liệu mẫu (không gồm ngày hôm nay)."}
+          </p>
         </div>
         <Button className="bg-blue-400 px-8 text-slate-900" onClick={() => navigate("/admin/reports")}>
           ← Quay lại

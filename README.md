@@ -5,8 +5,7 @@
 ## Chạy
 
 ```bash
-npm install
-npm install react-router-dom zustand recharts tailwindcss @tailwindcss/vite   # lần đầu, nếu chưa có trong package.json
+npm install      # mọi thư viện đã khai báo trong package.json, không cần cài thêm
 npm run dev      # http://localhost:5173
 npm run build    # kiểm tra kiểu + build
 npm run lint
@@ -43,11 +42,15 @@ src/
 - **Bản đồ trang chủ:** vị trí Hub trong `config/mapPositions.ts`.
 
 ## Hub & chỗ đỗ (UC11 + UC19)
-`/admin/hubs`: danh sách Hub, chi tiết 4 tab (Tổng quan, Chỗ đỗ, Cổng sạc, Cấu hình), thêm / sửa / bảo trì tài nguyên, ngưỡng riêng từng Hub, khoá lạc quan (409), nhập CSV/JSON. Xem `src/pages/admin/hubs/README.md`. Thử nhanh: đăng nhập `admin`, bấm **⚙ Demo → Metro surge** để thấy Hub Metro thành Overloaded; **Demo → Admin khác sửa** rồi Lưu ở tab Cấu hình để thấy 409.
+`/admin/hubs`: danh sách Hub, chi tiết 5 tab (Tổng quan, Chỗ đỗ, Cổng sạc, Phương tiện, Cấu hình), thêm / sửa / bảo trì tài nguyên, ngưỡng riêng từng Hub, khoá lạc quan (409), nhập CSV/JSON. Xem `src/pages/admin/hubs/README.md`. Thử nhanh: đăng nhập `admin`, bấm **⚙ Demo → Metro surge** để thấy Hub Metro thành Overloaded; **Demo → Admin khác sửa** rồi Lưu ở tab Cấu hình để thấy 409.
 
 ## Quy ước chính
 - **Thời gian:** dùng đồng hồ mô phỏng (`utils/time.ts`), không dùng `Date.now()` trong nghiệp vụ. Tua nhanh ở nút "Demo" góc phải dưới.
 - **Việc định kỳ:** `registerTickHandler(name, (now) => {...})` trong `engine/tickEngine.ts`.
 - **Thông báo:** `notify(userId | "*" | "role:OPERATOR", message, level)`.
 - **Zustand v5:** selector trả về object/mảng mới phải bọc `useShallow`.
-- Chi tiết phân công: thư mục `phan-cong/`.
+- Chi tiết phân công: thư mục `doc/`.
+
+## Phương tiện và mô phỏng (M4)
+- `/admin/vehicles`: danh sách xe toàn mạng, "Xem thông tin" mở trang chi tiết (tab Thông tin, Lịch sử chuyến, Sự cố). Chỉ **Admin** thêm / sửa / xóa xe; xe đang đặt, sử dụng, sạc hoặc nằm trong lệnh điều phối không xóa được.
+- `/admin/simulation` → "Phối hợp đa sự cố (Stress-Test)": dòng thời gian biến cố (cổng / xe giả định lỗi, tăng nhu cầu) cấu hình bằng hộp thoại "Thêm/chỉnh sửa biến cố".

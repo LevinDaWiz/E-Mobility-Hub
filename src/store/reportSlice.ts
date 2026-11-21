@@ -1,6 +1,5 @@
 import type { StateCreator } from "zustand";
 import type { Report, ReportDraft, ScheduledReport } from "../types";
-import { REPORT_HISTORY_LIMIT } from "../config/constants";
 import { upsertById } from "../utils/collections";
 import type { AppState } from "./index";
 
@@ -31,9 +30,9 @@ export function initialReportState(): ReportSliceData {
   return { reports: [], activeReport: null, draft: null, scheduledReports: [], reportFailureMode: false };
 }
 
-export const createReportSlice: StateCreator<AppState, [], [], ReportSliceActions> = (set) => ({
+export const createReportSlice: StateCreator<AppState, [], [], ReportSliceActions> = (set, get) => ({
   upsertReport: (r) => set((s) => ({ reports: upsertById(s.reports, r, "reportId") })),
-  addReport: (r) => set((s) => ({ reports: [r, ...s.reports].slice(0, REPORT_HISTORY_LIMIT) })),
+  addReport: (r) => set((s) => ({ reports: [r, ...s.reports].slice(0, get().settings.reportHistoryLimit) })),
   setActiveReport: (r) => set({ activeReport: r }),
   setDraft: (d) => set({ draft: d }),
   upsertSchedule: (sc) => set((s) => ({ scheduledReports: upsertById(s.scheduledReports, sc, "scheduleId") })),

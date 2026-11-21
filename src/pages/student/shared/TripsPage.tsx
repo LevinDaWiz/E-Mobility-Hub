@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ReservationService } from "../../../services/reservationService";
 import { useStore } from "../../../store";
 import { ReservationStatus, SlotStatus, TripStatus, VehicleType } from "../../../types";
+import { getHubIntakeBlocker } from "../../../utils/hubAvailability";
 
 const typeLabels: Record<VehicleType, string> = {
   [VehicleType.E_BIKE]: "Xe đạp điện",
@@ -62,11 +63,14 @@ export function TripsPage() {
     ? hubs.find((h) => h.hubId === vehicles.find((v) => v.vehicleId === lastCompletedTrip.vehicleId)?.currentHubId)
     : undefined;
 
+  // blocker: lý do Hub không nhận xe trả (bảo trì, ngưng hoạt động, tạm khóa do quá tải). Component render lại
+  // mỗi giây theo đồng hồ mô phỏng nên khoá hết hạn sẽ tự được mở lại.
   const hubOptions = hubs.map((item) => ({
     ...item,
     freeCount: parkingSlots.filter(
       (slot) => slot.hubId === item.hubId && slot.status === SlotStatus.FREE,
     ).length,
+    blocker: getHubIntakeBlocker(item.hubId),
   }));
   const selectedHub = hubOptions.find((item) => item.hubId === returnHubId);
 
@@ -75,7 +79,7 @@ export function TripsPage() {
     setError("");
     setSuccess("");
     try {
-      const trip = ReservationService.unlockVehicle(active.reservationId);
+      const trip = ReservationService.unlockVehicle(active.reservationId, currentUser.userId);
       setSuccess(`Đã nhận xe ${trip.vehicleId}. Chuyến đi đã bắt đầu!`);
       setConfirmId(null);
     } catch (e) {
@@ -132,25 +136,31 @@ export function TripsPage() {
           >
             <option value="">-- Chọn Hub trả xe --</option>
             {hubOptions.map((option) => (
-              <option key={option.hubId} value={option.hubId} disabled={option.freeCount === 0}>
-                {option.name} — {option.freeCount} chỗ trống
+              <option key={option.hubId} value={option.hubId} disabled={option.freeCount === 0 || option.blocker !== null}>
+                {option.name} — {option.blocker ? "tạm không nhận xe" : `${option.freeCount} chỗ trống`}
               </option>
             ))}
           </select>
           {selectedHub && (
             <p className="rounded-lg bg-white p-3 text-sm text-slate-700">
-              {selectedHub.name}: <strong>{selectedHub.freeCount} chỗ trống</strong>.
-              {selectedHub.freeCount === 0 ? " Vui lòng chọn Hub khác." : " Bạn có thể trả xe tại đây."}
+              {selectedHub.blocker ? (
+                selectedHub.blocker
+              ) : (
+                <>
+                  {selectedHub.name}: <strong>{selectedHub.freeCount} chỗ trống</strong>.
+                  {selectedHub.freeCount === 0 ? " Vui lòng chọn Hub khác." : " Bạn có thể trả xe tại đây."}
+                </>
+              )}
             </p>
           )}
-          {hubOptions.every((item) => item.freeCount === 0) && (
+          {hubOptions.every((item) => item.freeCount === 0 || item.blocker !== null) && (
             <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-              Tất cả Hub hiện đã đầy. Vui lòng thử lại khi có chỗ trống.
+              Hiện không có Hub nào nhận xe trả (hết chỗ hoặc tạm ngưng). Vui lòng thử lại sau.
             </p>
           )}
           <button
             type="button"
-            disabled={!selectedHub || selectedHub.freeCount === 0}
+            disabled={!selectedHub || selectedHub.freeCount === 0 || selectedHub.blocker !== null}
             onClick={() => { setError(""); setConfirmReturn(true); }}
             className="w-full rounded-lg bg-emerald-700 px-4 py-3 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
           >

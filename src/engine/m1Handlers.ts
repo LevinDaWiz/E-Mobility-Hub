@@ -1,8 +1,9 @@
-import { IOT_INTERVAL_MS, METRO_POLL_INTERVAL_MS, METRO_SURGE_FILL_EVERY_MS, REPORT_SCHEDULE_CHECK_MS } from "../config/constants";
+import { METRO_SURGE_FILL_EVERY_MS, REPORT_SCHEDULE_CHECK_MS } from "../config/constants";
 import { applyStateUpdate } from "../services/stateUpdateService";
 import { fillMetroHubsOneSlot, refreshMetroData } from "../services/metroService";
 import { notify } from "../services/notificationService";
 import { runDueSchedules } from "../services/reportService";
+import { getSettings } from "../services/settingsService";
 import { useStore } from "../store";
 import type { StateListener } from "../types";
 import { iotSimulator } from "./iotSimulator";
@@ -35,7 +36,7 @@ export function registerM1TickHandlers(): () => void {
   const stops = [
     // UC21: lấy dữ liệu Metro định kỳ (đã gồm hệ số surge nếu đang bật).
     registerTickHandler("m1.metroPoll", (now) => {
-      if (now - lastMetroPoll < METRO_POLL_INTERVAL_MS) return;
+      if (now - lastMetroPoll < getSettings().metroPollMs) return;
       lastMetroPoll = now;
       void refreshMetroData();
     }),
@@ -55,7 +56,7 @@ export function registerM1TickHandlers(): () => void {
         iotSimulator.resetClock();
         return;
       }
-      if (now - lastIot < IOT_INTERVAL_MS) return;
+      if (now - lastIot < getSettings().iotIntervalMs) return;
       lastIot = now;
       void iotSimulator.step();
     }),

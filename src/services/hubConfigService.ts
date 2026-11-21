@@ -1,4 +1,3 @@
-import { DEFAULT_HUB_THRESHOLDS, MAX_PORT_POWER_KW } from "../config/constants";
 import { useStore } from "../store";
 import {
   HubOperationalStatus,
@@ -15,6 +14,7 @@ import {
 } from "../types";
 import { resourceCode } from "../utils/resourceCode";
 import { notify } from "./notificationService";
+import { getSettings } from "./settingsService";
 
 // ===== M1 sở hữu (UC19): cấu hình Hub, chỗ đỗ, cổng sạc =====
 // Mọi hàm ghi trả về Result thay vì ném lỗi, để giao diện hiện đúng loại phản hồi theo mockup:
@@ -151,7 +151,8 @@ export function createHub(input: NewHubInput): Result<Hub> {
     area: input.name.trim(),
     parkingCapacity: capacity as number,
     operationalStatus: input.status,
-    thresholds: { ...DEFAULT_HUB_THRESHOLDS },
+    // Ngưỡng mặc định lấy từ Cài đặt (chỉ áp dụng cho Hub mới; Hub đã có giữ ngưỡng riêng).
+    thresholds: { ...getSettings().hubThresholds },
     version: 1,
     updatedBy: actor(),
     updatedAt: at,
@@ -376,7 +377,7 @@ function validatePortFields(input: Pick<PortFormInput, "powerKw" | "dockId">): F
   const errors: FieldErrors = {};
   const power = Number(input.powerKw.trim().replace(",", "."));
   if (input.powerKw.trim() === "" || Number.isNaN(power) || power <= 0) errors.powerKw = "Công suất phải là số dương.";
-  else if (power > MAX_PORT_POWER_KW) errors.powerKw = "Công suất vượt định mức của lưới điện hạ thế.";
+  else if (power > getSettings().maxPortPowerKw) errors.powerKw = "Công suất vượt định mức của lưới điện hạ thế.";
   if (input.dockId.trim() === "") errors.dockId = "Dock ID là bắt buộc.";
   return errors;
 }

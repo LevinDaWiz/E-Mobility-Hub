@@ -13,4 +13,8 @@ export interface Trip {
   // và Vehicle 1--* Trip trong class diagram.
   studentId: string;
   vehicleId: string;
+
+  // Hub lấy xe / Hub trả xe (để báo cáo di chuyển). Chuyến mẫu trong seed không có.
+  fromHubId?: string;
+  toHubId?: string;
 }

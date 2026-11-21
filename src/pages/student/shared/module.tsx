@@ -1,14 +1,10 @@
-import { registerTickHandler } from "../../../engine/tickEngine";
-import { ReservationService } from "../../../services/reservationService";
 import SharedVehiclesPage from "./SharedVehiclesPage";
 import { TripsPage } from "./TripsPage";
 import { ActivityPage } from "./ActivityPage";
 import type { AppModule } from "../../../routes/types";
 
-// NIFR-01: giữ nguyên handler hết hạn đặt xe đang sử dụng.
-registerTickHandler("expireVehicleReservations", (now) => {
-  ReservationService.expireReservations(now);
-});
+// NIFR-01 (tự hết hạn lượt đặt xe) được đăng ký tập trung ở engine/registerHandlers.ts (engine/m2Handlers.ts),
+// không đăng ký ở đây để không phụ thuộc việc file này có được import hay không.
 
 export const studentSharedModule: AppModule = {
   id: "student-shared",

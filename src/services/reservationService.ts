@@ -1,4 +1,6 @@
 import { useStore } from "../store";
+import { getHubIntakeBlocker, getHubPickupBlocker } from "../utils/hubAvailability";
+import { getSettings } from "./settingsService";
 import { ParkingService } from "./parkingService";
 import {
   ReservationStatus,
@@ -9,9 +11,7 @@ import {
   type AppNotification,
 } from "../types";
 
-// Thời hạn demo: 30 giây theo đồng hồ mô phỏng của M1.
-// Khi tích hợp NIFR-01, thống nhất hằng số này với cấu hình chung.
-export const RESERVATION_DEMO_MS = 30_000;
+// Thời hạn giữ xe lấy từ Cài đặt (mặc định 30 giây theo đồng hồ mô phỏng), xem config/settings.ts.
 
 // Dùng hệ thống thông báo trong CoreSlice của M1.
 // Giá trị level bên dưới tương ứng mức thông báo thành công.
@@ -83,6 +83,9 @@ export const ReservationService = {
     if (vehicle.status !== VehicleStatus.AVAILABLE || vehicle.batteryLevel <= 0) {
       throw new Error("Xe không khả dụng hoặc không đủ pin.");
     }
+    // Hub bảo trì / ngưng hoạt động thì không giao xe. Hub quá tải vẫn cho lấy xe (giúp giảm tải).
+    const pickupBlocker = getHubPickupBlocker(vehicle.currentHubId);
+    if (pickupBlocker) throw new Error(pickupBlocker);
 
     const hasActiveReservation = state.vehicleReservations.some(
       (reservation) =>
@@ -103,8 +106,9 @@ export const ReservationService = {
       studentId,
       vehicleId,
       createdAt: new Date(now).toISOString(),
-      expiresAt: new Date(now + RESERVATION_DEMO_MS).toISOString(),
+      expiresAt: new Date(now + getSettings().vehicleReservationMs).toISOString(),
       status: ReservationStatus.ACTIVE,
+      hubId: vehicle.currentHubId,
     };
 
     state.upsertVehicleReservation(reservation);
@@ -116,6 +120,8 @@ export const ReservationService = {
 
   // UC03: Hủy lượt đặt xe đang ACTIVE (chủ lượt đặt mới được hủy).
   cancelReservation(reservationId: string, studentId: string): VehicleReservation {
+    // Xử lý hết hạn trước (giống reserve/unlock) để lượt đã quá hạn nhưng chưa tới tick không bị "hủy" nhầm.
+    this.expireReservations(useStore.getState().clock.now);
     const state = useStore.getState();
     const reservation = state.vehicleReservations.find(
       (item) => item.reservationId === reservationId,
@@ -124,6 +130,9 @@ export const ReservationService = {
     if (!reservation) throw new Error("Không tìm thấy lượt đặt xe.");
     if (reservation.studentId !== studentId) {
       throw new Error("Bạn không có quyền hủy lượt đặt xe này.");
+    }
+    if (reservation.status === ReservationStatus.EXPIRED) {
+      throw new Error("Lượt đặt xe đã hết hạn.");
     }
     if (reservation.status !== ReservationStatus.ACTIVE) {
       throw new Error("Chỉ có thể hủy lượt đặt xe đang chờ nhận.");
@@ -144,7 +153,7 @@ export const ReservationService = {
   },
 
   // UC04: Nhận xe từ một lượt đặt còn hiệu lực.
-  unlockVehicle(reservationId: string): Trip {
+  unlockVehicle(reservationId: string, studentId: string): Trip {
     const now = useStore.getState().clock.now;
     this.expireReservations(now);
     const state = useStore.getState();
@@ -153,6 +162,10 @@ export const ReservationService = {
     );
 
     if (!reservation) throw new Error("Không tìm thấy lượt đặt xe.");
+    // Chỉ chủ lượt đặt mới được nhận xe (giống cancelReservation).
+    if (reservation.studentId !== studentId) {
+      throw new Error("Bạn không có quyền nhận xe của lượt đặt này.");
+    }
     if (reservation.status !== ReservationStatus.ACTIVE) {
       throw new Error("Lượt đặt xe không còn hiệu lực.");
     }
@@ -190,6 +203,7 @@ export const ReservationService = {
       startTime: new Date(now).toISOString(),
       endTime: null,
       status: TripStatus.ONGOING,
+      fromHubId: vehicle.currentHubId,
     };
 
     state.upsertVehicleReservation({ ...reservation, status: ReservationStatus.CONFIRMED });
@@ -220,12 +234,22 @@ export const ReservationService = {
     const hub = state.hubs.find((item) => item.hubId === hubId);
     if (!hub) throw new Error("Hub trả xe không tồn tại.");
 
+    // Hub bảo trì / ngưng hoạt động / đang tạm khóa nhận xe (quá tải) thì không nhận xe trả.
+    const intakeBlocker = getHubIntakeBlocker(hubId);
+    if (intakeBlocker) throw new Error(intakeBlocker);
+
     if (!ParkingService.hasFreeSlot(hubId)) {
       throw new Error(`Hub ${hub.name} đã hết chỗ đỗ. Vui lòng chọn Hub khác.`);
     }
 
+    // Chiếm slot TRƯỚC khi đổi trạng thái chuyến đi / xe, để nếu hết chỗ thì không để dữ liệu nửa vời.
+    // Gắn đúng vehicleId vào slot để trang Hub & chỗ đỗ và trang Phương tiện hiển thị khớp.
+    if (ParkingService.occupySlot(hubId, vehicle.vehicleId) === null) {
+      throw new Error(`Hub ${hub.name} đã hết chỗ đỗ. Vui lòng chọn Hub khác.`);
+    }
+
     const endTime = new Date(state.clock.now).toISOString();
-    const completed: Trip = { ...trip, endTime, status: TripStatus.COMPLETED };
+    const completed: Trip = { ...trip, endTime, status: TripStatus.COMPLETED, toHubId: hubId };
 
     // Giữ nhất quán dữ liệu giữa chuyến đi, xe và chỗ đỗ.
     state.upsertTrip(completed);
@@ -233,8 +257,6 @@ export const ReservationService = {
       status: VehicleStatus.AVAILABLE,
       currentHubId: hubId,
     });
-    // Gắn đúng vehicleId vào slot để trang Hub & chỗ đỗ và trang Phương tiện hiển thị khớp.
-    ParkingService.occupySlot(hubId, vehicle.vehicleId);
     notify(trip.studentId, `Trả xe ${trip.vehicleId} tại ${hub.name} thành công. Chuyến đi đã hoàn thành.`);
     return completed;
   },

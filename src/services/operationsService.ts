@@ -6,6 +6,7 @@ import {
   AlertSeverity,
   DispatchStatus,
   PortStatus,
+  SessionStatus,
   TicketStatus,
   TicketType,
   VehicleStatus,
@@ -165,15 +166,35 @@ export const OperationsService = {
 
       // Gọi ChargingScheduler của M3 để dời lịch sạc các phiên bị ảnh hưởng
       const activeSession = s.chargingSessions.find(
-        (cs) => cs.portId === newTicket.targetId && cs.status === "CHARGING"
+        (cs) => cs.portId === newTicket.targetId && cs.status === SessionStatus.CHARGING
       );
       if (activeSession) {
-        ChargingScheduler.rescheduleOnConflict(activeSession.sessionId);
-        notify(
-          "*",
-          `Phiên sạc tại cổng ${newTicket.targetId} bị gián đoạn do sự cố kỹ thuật, đang xếp lại lịch.`,
-          "warning"
-        );
+        const rescheduled = ChargingScheduler.rescheduleOnConflict(activeSession.sessionId);
+        if (rescheduled) {
+          notify(
+            "role:OPERATOR",
+            `Phiên sạc ${activeSession.sessionId} tại cổng ${newTicket.targetId} bị gián đoạn do sự cố, đã xếp lại sang cổng ${rescheduled.portId}.`,
+            "warning"
+          );
+        } else {
+          // Chưa xếp lại được (hoặc bộ xếp lịch chưa hoạt động): ghi nhận gián đoạn thật và báo vận hành xử lý thủ công,
+          // thay vì thông báo "đang xếp lại" khi chẳng có gì được xếp lại.
+          const latest = useStore.getState();
+          latest.upsertChargingSession({
+            ...activeSession,
+            status: SessionStatus.INTERRUPTED,
+            endTime: simNowIso(),
+          });
+          const vehicle = latest.vehicles.find((v) => v.vehicleId === activeSession.vehicleId);
+          if (vehicle?.status === VehicleStatus.CHARGING) {
+            latest.updateVehicle(vehicle.vehicleId, { status: VehicleStatus.AVAILABLE });
+          }
+          notify(
+            "role:OPERATOR",
+            `Phiên sạc ${activeSession.sessionId} (xe ${activeSession.vehicleId}) tại cổng ${newTicket.targetId} bị gián đoạn do sự cố kỹ thuật. Chưa xếp lại lịch sạc được, cần xử lý thủ công.`,
+            "warning"
+          );
+        }
       }
     }
 

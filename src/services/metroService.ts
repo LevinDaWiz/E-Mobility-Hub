@@ -1,10 +1,10 @@
 import { METRO_HOURLY_BASELINE } from "../data/metroBaseline";
-import { METRO_SURGE_MULTIPLIER } from "../config/constants";
 import { useStore } from "../store";
 import { AlertSeverity, HubType, SlotStatus, type MetroAdapter, type MetroData } from "../types";
 import { getSimNow, simNowIso } from "../utils/time";
 import { OperationsService } from "./operationsService";
 import { notify } from "./notificationService";
+import { getSettings } from "./settingsService";
 
 // ===== M1 sở hữu (UC21): dữ liệu Metro + Metro surge =====
 
@@ -80,7 +80,7 @@ function metroHubs() {
 }
 
 // Bật Metro surge: dữ liệu Metro ×multiplier, Hub Metro đầy dần (xem engine/m1Handlers), cảnh báo vận hành.
-export async function startMetroSurge(multiplier: number = METRO_SURGE_MULTIPLIER): Promise<boolean> {
+export async function startMetroSurge(multiplier: number = getSettings().metroSurgeMultiplier): Promise<boolean> {
   const store = useStore.getState();
   if (store.metroSurge.active) return false;
 

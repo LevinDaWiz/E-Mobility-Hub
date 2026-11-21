@@ -4,7 +4,8 @@ export const TICK_INTERVAL_MS = 1000;
 export const SIM_SPEEDS = [1, 5, 10, 30, 60] as const;
 
 // Thời hạn giữ chỗ (demo: ngắn để thấy được NIFR-01).
-export const VEHICLE_RESERVATION_TTL_MS = 60_000;
+// Đây chỉ là GIÁ TRỊ MẶC ĐỊNH; thời hạn đang áp dụng nằm ở settings (Cài đặt > Giữ chỗ), đọc bằng getSettings().
+export const VEHICLE_RESERVATION_TTL_MS = 30_000;
 export const PARKING_RESERVATION_TTL_MS = 120_000;
 
 // Ngưỡng mặc định của Hub mới (mỗi Hub có ngưỡng riêng trong Hub.thresholds, chỉnh ở UC19).

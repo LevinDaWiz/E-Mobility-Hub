@@ -29,9 +29,8 @@ export function StressEventModal({ event, defaultHubId, durationMinutes, onSave,
   const [multiplier, setMultiplier] = useState(String(event && event.kind === "DEMAND_SURGE" ? event.multiplier : 2));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const hubName = (id: string) => hubs.find((h) => h.hubId === id)?.name ?? id;
-
   const items: ChipItem[] = useMemo(() => {
+    const hubName = (id: string) => hubs.find((h) => h.hubId === id)?.name ?? id;
     if (kind === "PORT_FAULT") {
       return ports
         .filter((p) => p.hubId === hubId)
@@ -43,7 +42,6 @@ export function StressEventModal({ event, defaultHubId, durationMinutes, onSave,
         .map((v) => ({ id: v.vehicleId, code: v.vehicleId, hubName: hubName(v.currentHubId) }));
     }
     return [];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, hubId, ports, vehicles, hubs]);
 
   const changeKind = (next: StressEventKind) => {

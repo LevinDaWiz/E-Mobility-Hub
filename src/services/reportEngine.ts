@@ -14,6 +14,8 @@ import {
 // ===== M1 sở hữu (UC17): bộ tạo dữ liệu báo cáo =====
 // Hàm thuần (không đụng store): nhận danh sách Hub + bộ lọc, trả ReportData. Dữ liệu lịch sử là DỮ LIỆU MẪU
 // sinh xác định (cùng Hub + cùng ngày luôn ra cùng số) theo quy mô Hub, thay cho cơ sở dữ liệu thật.
+// Riêng NGÀY HÔM NAY (giờ mô phỏng) có thể được ghi đè bằng số liệu thật từ store qua input.live
+// (xem services/reportLiveData.ts); engine này vẫn không tự đọc store.
 
 export interface HubInfo {
   hubId: string;
@@ -101,15 +103,19 @@ export interface FilterErrors {
   to?: string;
 }
 
-export function validateFilters(filters: ReportFilters, today: string): FilterErrors {
+export function validateFilters(
+  filters: ReportFilters,
+  today: string,
+  maxRangeDays: number = REPORT_MAX_RANGE_DAYS,
+): FilterErrors {
   const errors: FilterErrors = {};
   if (!/^\d{4}-\d{2}-\d{2}$/.test(filters.from)) errors.from = "Chọn ngày bắt đầu.";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(filters.to)) errors.to = "Chọn ngày kết thúc.";
   if (errors.from || errors.to) return errors;
 
   if (filters.from > filters.to) errors.from = "Ngày bắt đầu phải trước ngày kết thúc.";
-  else if (diffDays(filters.from, filters.to) + 1 > REPORT_MAX_RANGE_DAYS) {
-    errors.to = `Khoảng thời gian tối đa ${REPORT_MAX_RANGE_DAYS} ngày.`;
+  else if (diffDays(filters.from, filters.to) + 1 > maxRangeDays) {
+    errors.to = `Khoảng thời gian tối đa ${maxRangeDays} ngày.`;
   }
   if (!errors.to && filters.to > today) errors.to = "Không thể chọn ngày trong tương lai.";
   return errors;
@@ -158,7 +164,7 @@ const TYPE_OCCUPANCY_BIAS: Record<HubType, number> = {
 const DOW_FACTOR = [0.62, 1.05, 1.1, 1.08, 1.12, 1.0, 0.65]; // CN..T7
 const VEHICLE_SHARE: Record<string, number> = { ALL: 1, [VehicleType.E_BIKE]: 0.6, [VehicleType.E_MOTORBIKE]: 0.4 };
 
-interface Fact {
+export interface Fact {
   date: string;
   weekend: boolean;
   requests: number;
@@ -517,13 +523,28 @@ const AFFINITY = (a: HubType, b: HubType): number => {
   return pair === `${HubType.DORM}+${HubType.METRO}` ? 1.5 : pair === `${HubType.CAMPUS}+${HubType.METRO}` ? 1.3 : 1.4;
 };
 
+// Chia `total` (số nguyên) theo trọng số thành các số nguyên có tổng đúng bằng `total` (phần dư chia cho phần lẻ lớn nhất).
+// Làm tròn từng ô riêng sẽ làm mất chuyến khi số chuyến nhỏ (1 chuyến chia nhiều Hub đích → mọi ô thành 0).
+function allocate(total: number, weights: number[]): number[] {
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+  if (total <= 0 || weightSum === 0) return weights.map(() => 0);
+  const exact = weights.map((w) => (total * w) / weightSum);
+  const base = exact.map(Math.floor);
+  const remainder = total - base.reduce((a, b) => a + b, 0);
+  exact
+    .map((value, index) => ({ index, fraction: value - base[index] }))
+    .sort((a, b) => b.fraction - a.fraction)
+    .slice(0, remainder)
+    .forEach(({ index }) => (base[index] += 1));
+  return base;
+}
+
 function movement(c: Context) {
   const hubs = c.all.map((r) => r.hub);
   const departuresAll = c.all.map((r) => sum([r], (f) => f.trips));
   const flow: number[][] = hubs.map((from, i) => {
     const weights = hubs.map((to, j) => (i === j ? 0 : to.parkingCapacity * AFFINITY(from.type, to.type)));
-    const total = weights.reduce((a, b) => a + b, 0);
-    return weights.map((w) => (total === 0 ? 0 : Math.round((departuresAll[i] * w) / total)));
+    return allocate(departuresAll[i], weights);
   });
 
   // Chỉ giữ các tuyến liên quan tới Hub được chọn (nếu có).
@@ -618,11 +639,13 @@ export interface BuildReportInput {
   hubs: HubInfo[];
   today: string; // YYYY-MM-DD (ngày mô phỏng)
   generatedAt: string;
+  // Số liệu thật của ngày hôm nay theo hubId; trường nào có thì thay giá trị mẫu của ngày đó.
+  live?: Record<string, Partial<Fact>>;
 }
 
 // Ném ReportError nếu dữ liệu lịch sử không đủ hoặc không có Hub phù hợp.
 export function buildReport(input: BuildReportInput): ReportData {
-  const { topic, filters, hubs, today } = input;
+  const { topic, filters, hubs, today, live } = input;
 
   if (filters.from < addDays(today, -REPORT_HISTORY_DAYS)) {
     throw new ReportError("INSUFFICIENT_DATA", "Dữ liệu lịch sử không đủ cho khoảng thời gian đã chọn.");
@@ -633,8 +656,16 @@ export function buildReport(input: BuildReportInput): ReportData {
   }
 
   const dates = eachDay(filters.from, filters.to);
+  const usesLive = !!live && dates.includes(today);
   const toRows = (list: HubInfo[]): HubFacts[] =>
-    list.map((hub) => ({ hub, facts: dates.map((d) => makeFact(hub, d, filters.vehicle)) }));
+    list.map((hub) => ({
+      hub,
+      facts: dates.map((d) => {
+        const sample = makeFact(hub, d, filters.vehicle);
+        const real = d === today ? live?.[hub.hubId] : undefined;
+        return real ? { ...sample, ...real } : sample;
+      }),
+    }));
   const all = toRows(hubs);
   const rows = scopeHub ? all.filter((r) => r.hub.hubId === scopeHub.hubId) : all;
 
@@ -646,6 +677,7 @@ export function buildReport(input: BuildReportInput): ReportData {
     hubLabel: scopeHub ? scopeHub.name : "All Hubs",
     vehicleLabel: VEHICLE_LABELS[filters.vehicle],
     generatedAt: input.generatedAt,
+    liveDate: usesLive ? today : undefined,
     ...body,
   };
 }

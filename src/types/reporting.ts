@@ -48,6 +48,8 @@ export interface ReportData {
   hubLabel: string; // "All Hubs" hoặc tên Hub
   vehicleLabel: string; // "All" / "E-bike" / "E-motorbike"
   generatedAt: string;
+  // Có giá trị (YYYY-MM-DD) nếu ngày đó trong báo cáo dùng số liệu thật từ hệ thống; các ngày khác là dữ liệu mẫu.
+  liveDate?: string;
   kpis: ReportKpi[];
   series: {
     title: string;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useStore } from "../../../store";
 import { VehicleService } from "../../../services/vehicleService";
@@ -91,29 +91,28 @@ export default function SharedVehiclesPage() {
 
   // SearchCriteria.type của M1 yêu cầu VehicleType cụ thể. Để có tùy chọn
   // "Tất cả loại xe", gọi service cho cả 2 loại rồi gộp Hub tương ứng.
-  const matchingHubIds = useMemo(() => {
-    const selectedTypes = type === "ALL" ? Object.values(VehicleType) : [type];
-    const matchingHubs = selectedTypes.flatMap((vehicleType) =>
-      VehicleService.searchHubsAndVehicles({
-        hubId,
-        type: vehicleType,
-        minBattery,
-        nearLocation,
-      }),
-    );
-    return new Set(matchingHubs.map((hub) => hub.hubId));
-  }, [hubId, type, minBattery, nearLocation, hubs, vehicles]);
+  // Tính trực tiếp mỗi lần render (nhỏ, nhẹ): service đọc store qua getState() nên useMemo không
+  // thấy được hubs / vehicles đổi và sẽ trả kết quả cũ, còn khai báo thêm hubs / vehicles vào deps thì bị lint báo.
+  const selectedTypes = type === "ALL" ? Object.values(VehicleType) : [type];
+  const matchingHubIds = new Set(
+    selectedTypes
+      .flatMap((vehicleType) =>
+        VehicleService.searchHubsAndVehicles({
+          hubId,
+          type: vehicleType,
+          minBattery,
+          nearLocation,
+        }),
+      )
+      .map((hub) => hub.hubId),
+  );
 
-  const matchingVehicles = useMemo(
-    () =>
-      vehicles.filter(
-        (vehicle) =>
-          matchingHubIds.has(vehicle.currentHubId) &&
-          (type === "ALL" || vehicle.type === type) &&
-          (status === "ALL" || vehicle.status === status) &&
-          vehicle.batteryLevel >= minBattery,
-      ),
-    [vehicles, matchingHubIds, type, status, minBattery],
+  const matchingVehicles = vehicles.filter(
+    (vehicle) =>
+      matchingHubIds.has(vehicle.currentHubId) &&
+      (type === "ALL" || vehicle.type === type) &&
+      (status === "ALL" || vehicle.status === status) &&
+      vehicle.batteryLevel >= minBattery,
   );
 
   const selectedVehicle: Vehicle | undefined = selectedVehicleId

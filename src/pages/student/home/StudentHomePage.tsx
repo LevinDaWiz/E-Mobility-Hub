@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ActiveReservationBanner } from "../../../components/ActiveReservationBanner";
 import { MiniMap } from "../../../components/layout/MiniMap";
 import { QUICK_ACTIONS, STUDENT_LINKS } from "../../../config/studentNav";
 import { useStore } from "../../../store";
@@ -42,6 +43,9 @@ export function StudentHomePage() {
           <Stat value={freeSlots} label="Chỗ đỗ trống" />
         </div>
       </section>
+
+      {/* Lượt giữ xe đang đếm ngược (hiện ngay dưới trạng thái mạng lưới) */}
+      <ActiveReservationBanner />
 
       <section>
         <div className="mb-3 flex items-baseline justify-between">
