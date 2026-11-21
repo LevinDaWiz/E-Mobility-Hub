@@ -121,8 +121,8 @@ export function HubVehiclesTab() {
         <Table columns={columns} rows={pg.pageItems} rowKey={(v) => v.vehicleId} empty="Hub chưa có phương tiện nào phù hợp" />
         <Pagination page={pg.page} pageCount={pg.pageCount} from={pg.from} to={pg.to} total={pg.total} noun="phương tiện" onChange={pg.setPage} />
         <p className="mt-3 text-xs text-slate-500">
-          Xe đang được sử dụng (trên đường) không nằm trong danh sách vì không còn đỗ tại Hub. Chỉnh sửa hoặc xóa xe ở trang chi
-          tiết phương tiện.
+          Danh sách gồm mọi xe thuộc Hub này, kể cả xe đang được sử dụng (hiện trạng thái “Đang sử dụng”). Chỉnh sửa hoặc xóa xe ở
+          trang chi tiết phương tiện.
         </p>
       </Card>
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useStore } from "../../../store";
 import { VehicleService } from "../../../services/vehicleService";
 import { ReservationService } from "../../../services/reservationService";
@@ -38,12 +38,14 @@ export default function SharedVehiclesPage() {
   const trips = useStore((state) => state.trips);
   const clockNow = useStore((state) => state.clock.now);
 
-  const [hubId, setHubId] = useState("");
+  // Từ trang chi tiết Hub: /app/shared?hub=...&vehicle=... chọn sẵn Hub và mở xe cần đặt.
+  const [searchParams] = useSearchParams();
+  const [hubId, setHubId] = useState(() => searchParams.get("hub") ?? "");
   const [type, setType] = useState<TypeFilter>("ALL");
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [minBattery, setMinBattery] = useState(0);
   const [nearLocation, setNearLocation] = useState("");
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(() => searchParams.get("vehicle"));
   const [confirmingReservation, setConfirmingReservation] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
