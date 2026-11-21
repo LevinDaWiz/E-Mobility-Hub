@@ -70,6 +70,8 @@ export interface CoreSliceActions {
   updateParkingSlot: (slotId: string, patch: Partial<ParkingSlot>) => void;
   updateChargingPort: (portId: string, patch: Partial<ChargingPort>) => void;
   addHub: (hub: Hub) => void;
+  addVehicle: (vehicle: Vehicle) => void;
+  removeVehicle: (vehicleId: string) => void;
   addParkingSlot: (slot: ParkingSlot) => void;
   addChargingPort: (port: ChargingPort) => void;
   addParkingSlots: (slots: ParkingSlot[]) => void;
@@ -159,6 +161,8 @@ export const createCoreSlice: StateCreator<AppState, [], [], CoreSliceActions> =
     })),
 
   addHub: (hub) => set((s) => ({ hubs: [...s.hubs, hub] })),
+  addVehicle: (vehicle) => set((s) => ({ vehicles: [...s.vehicles, vehicle] })),
+  removeVehicle: (vehicleId) => set((s) => ({ vehicles: s.vehicles.filter((v) => v.vehicleId !== vehicleId) })),
   addParkingSlot: (slot) => set((s) => ({ parkingSlots: [...s.parkingSlots, slot] })),
   addChargingPort: (port) => set((s) => ({ chargingPorts: [...s.chargingPorts, port] })),
   addParkingSlots: (slots) => set((s) => ({ parkingSlots: [...s.parkingSlots, ...slots] })),

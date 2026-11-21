@@ -1,23 +1,17 @@
-import { PlaceholderPage } from "../../components/ui";
 import type { AppModule } from "../../routes/types";
+import { ReportExportPage } from "./ReportExportPage";
+import { ReportResultPage } from "./ReportResultPage";
+import { ReportsHomePage } from "./ReportsHomePage";
 
-// M1: site quản trị – Báo cáo & Thống kê (UC17).
+// M1: site quản trị – Báo cáo & Thống kê (UC17): thiết lập → kết quả → xuất / định kỳ. Dành cho Operator, Admin, Ban quản lý.
 export const reportsModule: AppModule = {
   id: "reports",
   owner: "M1",
   area: "admin",
-  adminNav: [{ label: "Báo cáo & Thống kê", path: "/admin/reports", roles: ["ADMIN", "MANAGEMENT"], order: 60 }],
+  adminNav: [{ label: "Báo cáo & Thống kê", path: "/admin/reports", roles: ["OPERATOR", "ADMIN", "MANAGEMENT"], order: 60 }],
   routes: [
-    {
-      path: "/admin/reports",
-      element: (
-        <PlaceholderPage
-          owner="M1"
-          title="Báo cáo & Thống kê"
-          ucs={[{ code: "UC17", name: "Xem và xuất báo cáo thống kê" }]}
-          file="src/pages/reports/module.tsx"
-        />
-      ),
-    },
+    { path: "/admin/reports", element: <ReportsHomePage /> },
+    { path: "/admin/reports/result", element: <ReportResultPage /> },
+    { path: "/admin/reports/export", element: <ReportExportPage /> },
   ],
 };

@@ -14,8 +14,20 @@ import {
   RecommendationType,
   RunStatus,
 } from "../../types";
+import { StressEventsSummary } from "./StressEventsSummary";
+import { StressTestBuilder } from "./StressTestBuilder";
+import {
+  DEFAULT_STRESS_DURATION,
+  DEFAULT_STRESS_STRATEGY,
+  KIND_LABELS,
+  buildDefaultEvents,
+  defaultHubId,
+  surgeFactor,
+  type StressEvent,
+} from "./stressTypes";
 
 type TabKey = "CREATE" | "RUNNING" | "RESULTS" | "HISTORY";
+type CreateMode = "PRESET" | "STRESS";
 
 export function SimulationPage() {
   const hubs = useStore((s) => s.hubs);
@@ -38,11 +50,13 @@ export function SimulationPage() {
   const [multiplier, setMultiplier] = useState<number>(currentScenarioDef.defaultMultiplier);
   const [strategy, setStrategy] = useState<string>("PROACTIVE_REBALANCE");
 
-  // Custom Stress Test Event Timeline
-  const [customEvents, setCustomEvents] = useState<Array<{ timeMin: number; type: string; target: string }>>([
-    { timeMin: 15, type: "METRO_PEAK", target: "Ga Metro" },
-    { timeMin: 30, type: "CHARGING_FAILURE", target: "Cổng P1" },
-  ]);
+  // Chế độ tạo mô phỏng: kịch bản mẫu hoặc phối hợp đa sự cố (Stress-Test)
+  const [createMode, setCreateMode] = useState<CreateMode>("PRESET");
+  const [stressHubId, setStressHubId] = useState<string>(() => defaultHubId());
+  const [stressEvents, setStressEvents] = useState<StressEvent[]>(() => buildDefaultEvents(defaultHubId()));
+  const [stressDuration, setStressDuration] = useState<number>(DEFAULT_STRESS_DURATION);
+  const [stressStrategy, setStressStrategy] = useState<string>(DEFAULT_STRESS_STRATEGY);
+  const [stressError, setStressError] = useState<string | null>(null);
 
   // Timeline slider for Results view
   const [timelineMinute, setTimelineMinute] = useState<number>(30);
@@ -114,11 +128,57 @@ export function SimulationPage() {
       duration: durationMinutes,
       multiplier,
       strategy,
-      events: customEvents,
+      events: [],
     });
 
     setViewingRunId(run.runId);
     setActiveTab("RUNNING");
+  };
+
+  // Stress-Test: chạy dòng thời gian nhiều biến cố trên snapshot cách ly
+  const handleStartStress = () => {
+    try {
+      const run = SimulationService.runScenario("CONCURRENT_EVENTS", {
+        hubId: stressHubId,
+        duration: stressDuration,
+        multiplier: surgeFactor(stressEvents),
+        strategy: stressStrategy,
+        events: stressEvents.map((e) => ({ timeMin: e.timeMin, type: KIND_LABELS[e.kind], target: e.hubId })),
+        stressEvents,
+      });
+      setStressError(null);
+      setViewingRunId(run.runId);
+      setActiveTab("RUNNING");
+    } catch (err) {
+      setStressError(err instanceof Error ? err.message : "Không thể chạy mô phỏng.");
+    }
+  };
+
+  // "Nạp lại" từ lịch sử: phiên Stress-Test nạp lại cả dòng thời gian biến cố.
+  const handleReloadRun = (r: OpsSimulationRun) => {
+    const saved = r.parameters?.stressEvents as StressEvent[] | undefined;
+    if (saved && saved.length > 0) {
+      setCreateMode("STRESS");
+      setStressEvents(structuredClone(saved));
+      setStressHubId(String(r.parameters?.hubId ?? defaultHubId()));
+      setStressDuration(Number(r.parameters?.duration ?? DEFAULT_STRESS_DURATION));
+      setStressStrategy(String(r.parameters?.strategy ?? DEFAULT_STRESS_STRATEGY));
+      setStressError(null);
+    } else {
+      const def = PRESET_SCENARIOS.find((p) => p.type === r.scenarioType);
+      if (def) handleSelectPreset(def);
+      setCreateMode("PRESET");
+    }
+    setActiveTab("CREATE");
+  };
+
+  const handleResetStress = () => {
+    const hubId = defaultHubId();
+    setStressHubId(hubId);
+    setStressEvents(buildDefaultEvents(hubId));
+    setStressDuration(DEFAULT_STRESS_DURATION);
+    setStressStrategy(DEFAULT_STRESS_STRATEGY);
+    setStressError(null);
   };
 
   // Cancel Simulation Handler
@@ -211,11 +271,7 @@ export function SimulationPage() {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => {
-              const def = PRESET_SCENARIOS.find((p) => p.type === r.scenarioType);
-              if (def) handleSelectPreset(def);
-              setActiveTab("CREATE");
-            }}
+            onClick={() => handleReloadRun(r)}
           >
             Nạp lại
           </Button>
@@ -300,6 +356,46 @@ export function SimulationPage() {
           ========================================================================= */}
       {activeTab === "CREATE" && (
         <div className="space-y-6">
+          {/* Chọn chế độ: kịch bản mẫu hoặc Stress-Test đa sự cố */}
+          <div className="inline-flex gap-1 rounded-lg bg-slate-100 p-1" role="tablist" aria-label="Chế độ tạo mô phỏng">
+            {([
+              ["PRESET", "Kịch bản mẫu"],
+              ["STRESS", "Phối hợp đa sự cố (Stress-Test)"],
+            ] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                role="tab"
+                aria-selected={createMode === mode}
+                onClick={() => setCreateMode(mode)}
+                className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+                  createMode === mode ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-white"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            ⓘ Các thay đổi trong mô phỏng không ảnh hưởng đến mạng lưới đang vận hành.
+          </p>
+
+          {createMode === "STRESS" ? (
+            <StressTestBuilder
+              events={stressEvents}
+              onEventsChange={setStressEvents}
+              hubId={stressHubId}
+              onHubChange={setStressHubId}
+              duration={stressDuration}
+              onDurationChange={setStressDuration}
+              strategy={stressStrategy}
+              onStrategyChange={setStressStrategy}
+              error={stressError}
+              onReset={handleResetStress}
+              onRun={handleStartStress}
+            />
+          ) : (
+            <>
           {/* Preset Scenarios Selector Grid (10 WI Presets) */}
           <div>
             <div className="mb-3 flex items-center justify-between">
@@ -425,46 +521,6 @@ export function SimulationPage() {
                   </select>
                 </div>
               </div>
-
-              {/* Stress-Test Timeline Events builder */}
-              <div className="pt-2">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-700">
-                    Bảng dòng thời gian biến cố (Stress-Test Timeline)
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCustomEvents([
-                        ...customEvents,
-                        { timeMin: 45, type: "SECONDARY_JAM", target: "Hub KTX Khu B" },
-                      ])
-                    }
-                    className="text-xs text-blue-600 hover:underline font-medium"
-                  >
-                    + Thêm mốc biến cố
-                  </button>
-                </div>
-
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs space-y-2">
-                  {customEvents.map((ev, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-white p-2 rounded border border-slate-200">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-blue-700">T+{ev.timeMin}m</span>
-                        <span className="font-medium text-slate-800">{ev.type}</span>
-                        <span className="text-slate-500 text-[11px]">→ tác động {ev.target}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setCustomEvents(customEvents.filter((_, i) => i !== idx))}
-                        className="text-rose-500 hover:text-rose-700 text-xs"
-                      >
-                        Xóa
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </Card>
 
             {/* Sidebar Summary & Launch */}
@@ -514,6 +570,8 @@ export function SimulationPage() {
               </Button>
             </Card>
           </div>
+            </>
+          )}
         </div>
       )}
 
@@ -674,6 +732,11 @@ export function SimulationPage() {
                   </Button>
                 </div>
               </div>
+
+              {Array.isArray(currentResultRun.parameters?.stressEvents) &&
+                (currentResultRun.parameters?.stressEvents as StressEvent[]).length > 0 && (
+                  <StressEventsSummary events={currentResultRun.parameters?.stressEvents as StressEvent[]} />
+                )}
 
               {/* 4 KPIs Cards */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -12,3 +12,4 @@ export * from "./configuration";
 export * from "./integration";
 export * from "./search";
 export * from "./notification";
+export * from "./reporting";

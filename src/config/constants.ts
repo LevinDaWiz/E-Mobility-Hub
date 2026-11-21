@@ -38,3 +38,10 @@ export const METRO_SURGE_FILL_EVERY_MS = 3_000; // mỗi 3 giây mô phỏng, m�
 export const IOT_INTERVAL_MS = 5_000; // chu kỳ phát StateUpdate (giờ mô phỏng)
 export const IOT_DRAIN_PCT_PER_MIN = 0.5; // xe đang đi mất 0,5% pin / phút mô phỏng
 export const IOT_RANDOM_FAULT_PROB = 0.0005; // xác suất lỗi ngẫu nhiên / thiết bị / chu kỳ (chỉ khi bật)
+
+// Báo cáo (UC17)
+export const REPORT_HISTORY_DAYS = 180; // số ngày dữ liệu lịch sử mẫu có sẵn tính đến hôm nay
+export const REPORT_MAX_RANGE_DAYS = 366;
+export const REPORT_GENERATE_DELAY_MS = 1200; // thời gian "Đang tạo báo cáo..." (thật, không phải giờ mô phỏng)
+export const REPORT_SCHEDULE_CHECK_MS = 5_000; // chu kỳ kiểm tra báo cáo định kỳ (giờ mô phỏng)
+export const REPORT_HISTORY_LIMIT = 20; // số báo cáo đã tạo được giữ lại

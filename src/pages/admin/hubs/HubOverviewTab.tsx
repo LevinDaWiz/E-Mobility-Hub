@@ -52,7 +52,7 @@ export function HubOverviewTab() {
             <InfoItem label="Capacity">{hub.parkingCapacity}</InfoItem>
             <InfoItem label="Cập nhật lần cuối">{formatDateTime(hub.updatedAt)}</InfoItem>
           </div>
-          <Link to="/admin/vehicles" className="mt-3 inline-block text-xs font-semibold text-brand-700">
+          <Link to={`/admin/vehicles?hub=${hub.hubId}`} className="mt-3 inline-block text-xs font-semibold text-brand-700">
             Xem phương tiện tại Hub này →
           </Link>
         </Card>

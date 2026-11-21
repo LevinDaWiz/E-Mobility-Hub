@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Badge, Button, Card, Progress, Table, type Column } from "../../components/ui";
 import { OperationsService } from "../../services/operationsService";
 import { useStore } from "../../store";
 import { TicketStatus, TicketType, VehicleStatus, VehicleType, type Vehicle } from "../../types";
+import { VehicleFormModal } from "./vehicles/VehicleFormModal";
 
 export function VehiclesPage() {
   const [searchParams] = useSearchParams();
@@ -16,6 +17,8 @@ export function VehiclesPage() {
   const [selectedType, setSelectedType] = useState<string>("ALL");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [selectedBattery, setSelectedBattery] = useState<string>("ALL");
+  const [adding, setAdding] = useState(false);
+  const canEdit = useStore((s) => s.currentUser.role === "ADMIN"); // chỉ Admin thêm / sửa / xóa xe
 
   const filteredVehicles = useMemo(() => {
     return vehicles.filter((v) => {
@@ -92,6 +95,12 @@ export function VehiclesPage() {
       className: "text-right",
       cell: (v) => (
         <div className="flex justify-end gap-2">
+          <Link
+            to={`/admin/vehicles/${v.vehicleId}`}
+            className="inline-flex items-center rounded-md bg-white px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50"
+          >
+            Xem thông tin
+          </Link>
           {v.status !== VehicleStatus.FAULTY ? (
             <Button
               size="sm"
@@ -117,6 +126,7 @@ export function VehiclesPage() {
             Theo dõi vị trí, dung lượng pin và trạng thái phục vụ của toàn bộ fleet xe (UC11).
           </p>
         </div>
+        {canEdit && <Button onClick={() => setAdding(true)}>+ Thêm phương tiện</Button>}
       </div>
 
       {/* Thanh lọc nâng cao */}
@@ -199,6 +209,14 @@ export function VehiclesPage() {
           empty="Không tìm thấy phương tiện nào phù hợp với bộ lọc."
         />
       </Card>
+
+      {adding && canEdit && (
+        <VehicleFormModal
+          defaultHubId={selectedHub !== "ALL" ? selectedHub : undefined}
+          onClose={() => setAdding(false)}
+          onSaved={() => setAdding(false)}
+        />
+      )}
     </div>
   );
 }

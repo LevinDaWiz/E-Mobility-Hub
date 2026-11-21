@@ -22,6 +22,18 @@ import { getSimulationInputs } from "./simulationInputs";
 
 // ===== M4 sở hữu file này: Engine mô phỏng What-if cách ly tuyệt đối (NIFR-08, UC16, UC18) =====
 
+// Biến cố trong dòng thời gian Stress-Test (UC16): cổng / xe giả định lỗi hoặc nhu cầu tăng.
+export type StressEventKind = "PORT_FAULT" | "VEHICLE_FAULT" | "DEMAND_SURGE";
+
+export interface StressEvent {
+  id: string;
+  timeMin: number; // phút (ảo) kể từ lúc bắt đầu mô phỏng
+  kind: StressEventKind;
+  hubId: string;
+  resourceIds: string[]; // portId / vehicleId (rỗng với DEMAND_SURGE)
+  multiplier: number; // hệ số nhân nhu cầu (chỉ dùng với DEMAND_SURGE)
+}
+
 export interface ScenarioDefinition {
   type: ExtendedScenarioType;
   code: string;
@@ -171,6 +183,7 @@ export const SimulationService = {
       multiplier: number;
       strategy?: string;
       events?: Array<{ timeMin: number; type: string; target: string }>;
+      stressEvents?: StressEvent[];
     }
   ): OpsSimulationRun {
     const s = useStore.getState();
@@ -181,6 +194,15 @@ export const SimulationService = {
     }
     if (!s.hubs.some((h) => h.hubId === params.hubId)) {
       throw new Error(`ERR_HUB_NOT_FOUND: Hub ${params.hubId} không tồn tại`);
+    }
+
+    for (const ev of params.stressEvents ?? []) {
+      if (ev.timeMin < 0 || ev.timeMin > params.duration) {
+        throw new Error(`ERR_INVALID_EVENT: Biến cố ở phút ${ev.timeMin} nằm ngoài thời lượng ${params.duration} phút`);
+      }
+      if (!s.hubs.some((h) => h.hubId === ev.hubId)) {
+        throw new Error(`ERR_HUB_NOT_FOUND: Hub ${ev.hubId} của biến cố không tồn tại`);
+      }
     }
 
     // 2. Lấy Deep-Clone Snapshot (NIFR-08: Sandbox RAM, Read-only)
@@ -226,6 +248,19 @@ export const SimulationService = {
         const predictedUtilization: Record<string, number> = {};
         const overloadedHubs: string[] = [];
 
+        // Biến cố Stress-Test: nhu cầu tăng theo từng Hub, cổng / xe giả định lỗi làm xấu các KPI.
+        const stressEvents = params.stressEvents ?? [];
+        const surgeByHub: Record<string, number> = {};
+        for (const ev of stressEvents) {
+          if (ev.kind === "DEMAND_SURGE") surgeByHub[ev.hubId] = (surgeByHub[ev.hubId] ?? 1) * ev.multiplier;
+        }
+        const faultyPortCount = stressEvents
+          .filter((ev) => ev.kind === "PORT_FAULT")
+          .reduce((n, ev) => n + ev.resourceIds.length, 0);
+        const faultyVehicleCount = stressEvents
+          .filter((ev) => ev.kind === "VEHICLE_FAULT")
+          .reduce((n, ev) => n + ev.resourceIds.length, 0);
+
         for (const h of snapshot.hubs) {
           const stats = computeHubStats(
             { parkingSlots: snapshot.parkingSlots, chargingPorts: snapshot.chargingPorts, vehicles: snapshot.vehicles },
@@ -236,19 +271,23 @@ export const SimulationService = {
           const predicted =
             h.hubId === params.hubId
               ? Math.min(1.0, stats.utilization * params.multiplier)
-              : Math.min(0.95, stats.utilization + (params.multiplier - 1) * 0.15);
+              : surgeByHub[h.hubId] !== undefined
+                ? Math.min(1.0, stats.utilization * surgeByHub[h.hubId])
+                : Math.min(0.95, stats.utilization + (params.multiplier - 1) * 0.15);
 
           predictedUtilization[h.hubId] = Number(predicted.toFixed(2));
-          if (predicted > 0.85) {
+          if (predicted > h.thresholds.overload) {
             overloadedHubs.push(h.hubId);
           }
         }
 
         // Tính các chỉ số kỹ thuật KPI
         const targetHubName = snapshot.hubs.find((h) => h.hubId === params.hubId)?.name ?? params.hubId;
-        const unservedDemandRate = Number(Math.min(35, (params.multiplier - 1) * 16).toFixed(1));
-        const avgWaitingTimeMinutes = Math.round(8 + (params.multiplier - 1) * 9);
-        const reroutedUsersCount = Math.round((params.multiplier - 1) * 28);
+        const unservedDemandRate = Number(
+          Math.min(60, (params.multiplier - 1) * 16 + faultyVehicleCount * 1.5 + faultyPortCount * 0.8).toFixed(1),
+        );
+        const avgWaitingTimeMinutes = Math.round(8 + (params.multiplier - 1) * 9 + faultyPortCount * 2);
+        const reroutedUsersCount = Math.round((params.multiplier - 1) * 28 + faultyVehicleCount * 3 + faultyPortCount * 5);
 
         // Sinh 3 gói khuyến nghị A, B, C
         const recommendations: OpsRecommendation[] = [

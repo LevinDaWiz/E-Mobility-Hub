@@ -22,6 +22,8 @@ export function DemoScenarios() {
   const ports = useStore((s) => s.chargingPorts);
   const metroData = useStore((s) => s.metroData);
   const hubs = useStore((s) => s.hubs);
+  const reportFailureMode = useStore((s) => s.reportFailureMode);
+  const setReportFailureMode = useStore((s) => s.setReportFailureMode);
 
   const [entity, setEntity] = useState<FaultEntity>("port");
   const [targetId, setTargetId] = useState("");
@@ -126,6 +128,14 @@ export function DemoScenarios() {
             Khôi phục
           </Button>
         </div>
+      </section>
+
+      <section>
+        <h3 className={sectionTitle}>Báo cáo (UC17)</h3>
+        <label className="flex items-center gap-2 text-xs text-slate-700">
+          <input type="checkbox" checked={reportFailureMode} onChange={(e) => setReportFailureMode(e.target.checked)} />
+          Giả lập lỗi khi tạo / xuất báo cáo
+        </label>
       </section>
 
       <section>
