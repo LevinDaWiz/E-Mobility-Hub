@@ -1,9 +1,9 @@
 import { useStore } from "../store";
+import { ParkingService } from "./parkingService";
 import {
   ReservationStatus,
   TripStatus,
   VehicleStatus,
-  SlotStatus,
   type Trip,
   type VehicleReservation,
   type AppNotification,
@@ -195,12 +195,12 @@ export const ReservationService = {
     state.upsertVehicleReservation({ ...reservation, status: ReservationStatus.CONFIRMED });
     state.upsertTrip(trip);
     state.updateVehicle(vehicle.vehicleId, { status: VehicleStatus.IN_USE });
+    // Xe rời Hub nên giải phóng đúng chỗ đỗ của nó (xe đang chạy không chiếm slot).
+    ParkingService.releaseSlot(vehicle.currentHubId, vehicle.vehicleId);
     notify(reservation.studentId, `Nhận xe ${vehicle.vehicleId} thành công. Chuyến đi đã bắt đầu.`);
     return trip;
   },
   // UC06: Trả xe tại Hub được chọn.
-  // Tạm dùng parkingSlots + updateParkingSlot của M1 vì chưa có mã ParkingService của M3.
-  // Khi M3 hoàn thành, thay phần kiểm tra/chiếm chỗ bằng ParkingService.hasFreeSlot/occupySlot.
   returnVehicle(tripId: string, hubId: string): Trip {
     const state = useStore.getState();
     const trip = state.trips.find((item) => item.tripId === tripId);
@@ -220,10 +220,7 @@ export const ReservationService = {
     const hub = state.hubs.find((item) => item.hubId === hubId);
     if (!hub) throw new Error("Hub trả xe không tồn tại.");
 
-    const freeSlot = state.parkingSlots.find(
-      (slot) => slot.hubId === hubId && slot.status === SlotStatus.FREE,
-    );
-    if (!freeSlot) {
+    if (!ParkingService.hasFreeSlot(hubId)) {
       throw new Error(`Hub ${hub.name} đã hết chỗ đỗ. Vui lòng chọn Hub khác.`);
     }
 
@@ -236,7 +233,8 @@ export const ReservationService = {
       status: VehicleStatus.AVAILABLE,
       currentHubId: hubId,
     });
-    state.updateParkingSlot(freeSlot.slotId, { status: SlotStatus.OCCUPIED });
+    // Gắn đúng vehicleId vào slot để trang Hub & chỗ đỗ và trang Phương tiện hiển thị khớp.
+    ParkingService.occupySlot(hubId, vehicle.vehicleId);
     notify(trip.studentId, `Trả xe ${trip.vehicleId} tại ${hub.name} thành công. Chuyến đi đã hoàn thành.`);
     return completed;
   },

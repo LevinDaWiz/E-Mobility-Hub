@@ -4,27 +4,42 @@ import type { Trip, VehicleReservation } from "../types";
 import { upsertById } from "../utils/collections";
 import type { AppState } from "./index";
 
-// ===== M2 sở hữu file này: đặt xe, chuyến đi (UC03, UC04, UC06) =====
-// Thêm state/action tuỳ ý. Nhớ cập nhật initialVehicleState để "reset dữ liệu" hoạt động.
-
+// M2 – UC03, UC04, UC06: lưu các lượt đặt xe và chuyến đi.
+// Trạng thái bản thân chiếc xe vẫn thuộc coreSlice (M1).
 export interface VehicleSliceData {
   vehicleReservations: VehicleReservation[];
   trips: Trip[];
 }
 
 export interface VehicleSliceActions {
-  upsertVehicleReservation: (r: VehicleReservation) => void;
-  upsertTrip: (t: Trip) => void;
+  // Thêm lượt đặt mới hoặc cập nhật lượt đặt có cùng reservationId.
+  upsertVehicleReservation: (reservation: VehicleReservation) => void;
+  // Thêm chuyến đi mới hoặc cập nhật chuyến đi có cùng tripId.
+  upsertTrip: (trip: Trip) => void;
 }
 
 export type VehicleSlice = VehicleSliceData & VehicleSliceActions;
 
+// Khi bấm Reset, dữ liệu đặt xe được xóa; các chuyến đi mẫu được phục hồi.
 export function initialVehicleState(seed: SeedData): VehicleSliceData {
-  return { vehicleReservations: [], trips: seed.trips };
+  return {
+    vehicleReservations: [],
+    trips: seed.trips,
+  };
 }
 
-export const createVehicleSlice: StateCreator<AppState, [], [], VehicleSliceActions> = (set) => ({
-  upsertVehicleReservation: (r) =>
-    set((s) => ({ vehicleReservations: upsertById(s.vehicleReservations, r, "reservationId") })),
-  upsertTrip: (t) => set((s) => ({ trips: upsertById(s.trips, t, "tripId") })),
-});
+export const createVehicleSlice: StateCreator<AppState, [], [], VehicleSliceActions> =
+  (set) => ({
+    upsertVehicleReservation: (reservation) =>
+      set((state) => ({
+        vehicleReservations: upsertById(
+          state.vehicleReservations,
+          reservation,
+          "reservationId",
+        ),
+      })),
+    upsertTrip: (trip) =>
+      set((state) => ({
+        trips: upsertById(state.trips, trip, "tripId"),
+      })),
+  });
