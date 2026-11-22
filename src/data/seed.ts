@@ -289,7 +289,7 @@ export function createSeed(): SeedData {
   ];
 
   // Xe cá nhân đã đăng ký (M3: UC05, UC08–UC10). Không đỗ sẵn ở Hub nào để demo đặt chỗ từ đầu.
-  // PV-002 có dữ liệu pin cũ (IoT gián đoạn, UC05 E1); 2112348 chưa đăng ký xe nào.
+  // 2112348 chưa đăng ký xe nào.
   const personalVehicles: PersonalVehicle[] = [
     {
       vehicleId: "PV-001",
@@ -311,7 +311,7 @@ export function createSeed(): SeedData {
       batteryLevel: 18,
       batteryCapacityKwh: 1.2,
       portKind: PortKind.STANDARD,
-      batteryUpdatedAt: iso(-3 * 3600_000),
+      batteryUpdatedAt: iso(-3 * 3600_000), // dữ liệu pin cũ: demo IoT gián đoạn (UC05 E1)
     },
     {
       vehicleId: "PV-003",

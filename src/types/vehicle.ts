@@ -22,9 +22,9 @@ export interface Vehicle {
 }
 
 // Xe cá nhân sinh viên đã đăng ký (UC05, UC08, UC09, UC10). Tách khỏi Vehicle (xe dùng chung) để không
-// lẫn vào tìm xe (M2), danh sách phương tiện (M4) và thống kê Hub. Mã "PV-xxx" không trùng "VH-xxx" nên
-// ChargingRequest/ChargingSession.vehicleId trỏ được tới cả hai loại xe.
+// lẫn vào tìm xe (M2), danh sách phương tiện (M4) và thống kê Hub.
 export interface PersonalVehicle {
+  // "PV-xxx", không trùng "VH-xxx" nên ChargingRequest/ChargingSession.vehicleId trỏ được tới cả hai loại xe.
   vehicleId: string;
   ownerId: string; // studentId (MSSV)
   type: VehicleType;

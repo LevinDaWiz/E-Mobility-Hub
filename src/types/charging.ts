@@ -11,22 +11,18 @@ export enum PortKind {
   STANDARD = "STANDARD",
 }
 
-// COMPLETED gồm cả "Hoàn tất (dừng sớm)" (UC10 A1): currentBattery < targetBattery.
-// CANCELLED: sinh viên/Operator hủy lịch, hoặc quá hạn cắm sạc (UC09 E3, NIFR-01).
 export enum SessionStatus {
   SCHEDULED = "SCHEDULED",
   CHARGING = "CHARGING",
-  COMPLETED = "COMPLETED",
+  COMPLETED = "COMPLETED", // gồm cả "Hoàn tất (dừng sớm)" (UC10 A1): currentBattery < targetBattery
   INTERRUPTED = "INTERRUPTED",
-  CANCELLED = "CANCELLED",
+  CANCELLED = "CANCELLED", // sinh viên/Operator hủy lịch, hoặc quá hạn cắm sạc (UC09 E3, NIFR-01)
 }
 
-// PENDING: đang chờ trong hàng đợi (UC05 A2). SCHEDULED: đã có phiên sạc giữ cổng.
-// COMPLETED: phiên sạc của yêu cầu đã kết thúc (không còn chặn xóa xe).
 export enum RequestStatus {
-  PENDING = "PENDING",
-  SCHEDULED = "SCHEDULED",
-  COMPLETED = "COMPLETED",
+  PENDING = "PENDING", // đang chờ trong hàng đợi (UC05 A2)
+  SCHEDULED = "SCHEDULED", // đã có phiên sạc giữ cổng
+  COMPLETED = "COMPLETED", // phiên sạc của yêu cầu đã kết thúc (không còn chặn xóa xe)
   CANCELLED = "CANCELLED",
   REJECTED = "REJECTED",
 }
