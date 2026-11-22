@@ -26,6 +26,13 @@ export const TABLE_PAGE_SIZE = 6;
 // Pin thấp: gợi ý đăng ký sạc.
 export const LOW_BATTERY_THRESHOLD = 20;
 
+// Dung lượng pin mặc định theo loại xe (kWh): ước tính thời gian sạc (M3) và năng lượng đã sạc (UC17).
+// Xe cá nhân có dung lượng riêng (PersonalVehicle.batteryCapacityKwh).
+export const BATTERY_CAPACITY_KWH = {
+  E_BIKE: 1.5,
+  E_MOTORBIKE: 3.4,
+} as const;
+
 // Đăng nhập giả lập (UC20)
 export const AUTH_DELAY_MS = 1800;
 export const DEFAULT_SCHOOL = "ĐH Bách Khoa — ĐHQG-HCM";

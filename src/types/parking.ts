@@ -26,6 +26,10 @@ export interface ParkingSlot {
   updatedAt: string;
 }
 
+// Trạng thái dùng chung ReservationStatus:
+//   ACTIVE = đang giữ chỗ, đếm ngược tới expiresAt (UC08 "Đã xác nhận");
+//   CONFIRMED = đã quét mã nhận chỗ, xe đang đỗ (checkedInAt != null; xe rời Hub thì endedAt != null);
+//   EXPIRED = quá hạn không đến (NIFR-01); CANCELLED = sinh viên hủy.
 export interface ParkingReservation {
   reservationId: string;
   studentId: string;
@@ -36,4 +40,10 @@ export interface ParkingReservation {
   // ID biểu diễn association ParkingReservation * --> 1 ParkingSlot, và Hub.
   slotId: string;
   hubId: string;
+
+  vehicleId: string; // xe cá nhân (PV-xxx)
+  arrivalTime: string; // giờ dự kiến đến
+  durationMin: number; // thời lượng đỗ
+  checkedInAt: string | null;
+  endedAt: string | null;
 }
