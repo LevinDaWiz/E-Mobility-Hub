@@ -10,11 +10,9 @@ export interface SearchCriteria {
 export type HubNeed = "PARKING" | "CHARGING" | "BOTH";
 export type HubSortKey = "DISTANCE" | "FREE_SLOTS" | "CHARGE_WAIT";
 
-// UC07: tìm Hub có chỗ đỗ / cổng sạc (ParkingService.findHubsWithCapacity).
 export interface HubSearchCriteria {
   need: HubNeed;
-  arriveAt: string; // giờ dự kiến đến Hub (giờ mô phỏng)
-  // Khu vực xuất phát (Hub.area) khi không có quyền vị trí (UC07 A1); null = vị trí hiện tại.
-  fromArea: string | null;
+  arriveAt: string;
+  fromArea: string | null; // Hub.area; null = vị trí hiện tại
   sortBy: HubSortKey;
 }

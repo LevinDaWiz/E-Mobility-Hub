@@ -261,7 +261,7 @@ export function createSeed(): SeedData {
           hubId: def.hubId,
           studentId: null,
           createdAt: iso(-15 * 60_000),
-          priorityReason: "Xe dùng chung pin thấp, cần sạc để cho thuê (dữ liệu mẫu).",
+          priorityReason: "Dữ liệu mẫu",
         });
         chargingSessions.push({
           sessionId: `CS-${pad(n, 3)}`,
@@ -288,8 +288,6 @@ export function createSeed(): SeedData {
     { studentId: "2112348", name: "Phạm Quốc Duy", email: "duy.pham@hcmut.edu.vn" },
   ];
 
-  // Xe cá nhân đã đăng ký (M3: UC05, UC08–UC10). Không đỗ sẵn ở Hub nào để demo đặt chỗ từ đầu.
-  // 2112348 chưa đăng ký xe nào.
   const personalVehicles: PersonalVehicle[] = [
     {
       vehicleId: "PV-001",
@@ -311,7 +309,7 @@ export function createSeed(): SeedData {
       batteryLevel: 18,
       batteryCapacityKwh: 1.2,
       portKind: PortKind.STANDARD,
-      batteryUpdatedAt: iso(-3 * 3600_000), // dữ liệu pin cũ: demo IoT gián đoạn (UC05 E1)
+      batteryUpdatedAt: iso(-3 * 3600_000),
     },
     {
       vehicleId: "PV-003",

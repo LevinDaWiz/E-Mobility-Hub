@@ -50,7 +50,7 @@ export function buildLiveFacts(today: string, vehicle: string): Record<string, P
       (r) => r.status === ReservationStatus.ACTIVE || r.status === ReservationStatus.CONFIRMED,
     ).length;
 
-    // Yêu cầu sạc có giờ bắt đầu mong muốn hôm nay, theo Hub muốn sạc của yêu cầu.
+    // Yêu cầu sạc có giờ bắt đầu mong muốn hôm nay (Hub = hubId của yêu cầu).
     const requests = s.chargingRequests.filter(
       (r) =>
         r.hubId === hub.hubId &&

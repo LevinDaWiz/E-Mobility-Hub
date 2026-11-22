@@ -21,19 +21,17 @@ export interface Vehicle {
   currentHubId: string;
 }
 
-// Xe cá nhân sinh viên đã đăng ký (UC05, UC08, UC09, UC10). Tách khỏi Vehicle (xe dùng chung) để không
-// lẫn vào tìm xe (M2), danh sách phương tiện (M4) và thống kê Hub.
+// Xe cá nhân của sinh viên, tách biệt với Vehicle (xe dùng chung).
 export interface PersonalVehicle {
-  // "PV-xxx", không trùng "VH-xxx" nên ChargingRequest/ChargingSession.vehicleId trỏ được tới cả hai loại xe.
   vehicleId: string;
-  ownerId: string; // studentId (MSSV)
   type: VehicleType;
   plateNumber: string;
   model: string;
-  batteryLevel: number; // 0..100, lần đọc IoT gần nhất
+  batteryLevel: number;
   batteryCapacityKwh: number;
-  // Cổng nhanh nhất xe hỗ trợ: FAST dùng được cả cổng FAST và STANDARD; STANDARD chỉ dùng cổng STANDARD.
-  portKind: PortKind;
-  // Thời điểm IoT cập nhật pin gần nhất (UC05 E1 / UC10 E1: dữ liệu cũ thì hiện nhãn "Chưa cập nhật").
   batteryUpdatedAt: string;
+  portKind: PortKind; // FAST: dùng được cổng FAST và STANDARD; STANDARD: chỉ cổng STANDARD
+
+  // ID biểu diễn association Student 1--* PersonalVehicle.
+  ownerId: string;
 }

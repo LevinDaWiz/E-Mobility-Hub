@@ -31,17 +31,14 @@ export interface ParkingReservation {
   studentId: string;
   createdAt: string;
   expiresAt: string;
-  // ACTIVE = đang giữ chỗ, đếm ngược tới expiresAt (UC08 "Đã xác nhận");
-  // CONFIRMED = đã quét mã nhận chỗ, xe đang đỗ; EXPIRED = quá hạn không đến (NIFR-01); CANCELLED = sinh viên hủy.
+  arrivalTime: string;
+  durationMin: number;
+  checkedInAt: string | null;
+  endedAt: string | null;
   status: ReservationStatus;
 
-  // ID biểu diễn association ParkingReservation * --> 1 ParkingSlot, và Hub.
+  // ID biểu diễn association ParkingReservation * --> 1 ParkingSlot, Hub và PersonalVehicle.
   slotId: string;
   hubId: string;
-
-  vehicleId: string; // xe cá nhân (PV-xxx)
-  arrivalTime: string; // giờ dự kiến đến
-  durationMin: number; // thời lượng đỗ
-  checkedInAt: string | null; // lúc quét mã nhận chỗ (chuyển sang CONFIRMED)
-  endedAt: string | null; // lúc xe rời Hub, slot được giải phóng
+  vehicleId: string;
 }
