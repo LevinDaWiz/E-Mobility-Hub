@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
-import { Button, Card, FormField } from "../../../components/ui";
+import { useNavigate, useParams } from "react-router-dom";
+import { Button, Card, ConfirmDeleteModal, FormField } from "../../../components/ui";
 import {
+  deleteHub,
+  getDeleteImpact,
   hubToConfigInput,
   updateHubConfig,
+  type DeleteImpact,
   type FieldErrors,
   type HubConfigInput,
 } from "../../../services/hubConfigService";
@@ -26,6 +29,8 @@ function ConfigForm({ hub }: { hub: Hub }) {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [conflict, setConflict] = useState<ConflictState | null>(null);
   const [blocked, setBlocked] = useState<BlockedInfo | null>(null);
+  const [deleting, setDeleting] = useState<DeleteImpact | null>(null);
+  const navigate = useNavigate();
 
   const set = <K extends keyof HubConfigInput>(key: K, value: HubConfigInput[K]) => setForm((f) => ({ ...f, [key]: value }));
   const locked = !canEdit || conflict !== null;
@@ -51,6 +56,28 @@ function ConfigForm({ hub }: { hub: Hub }) {
       setBlocked({ resource: result.resource, reason: result.reason });
     } else {
       setConflict({ yourVersion: result.yourVersion, latest: result.latest });
+    }
+  };
+
+  // Xóa Hub: còn xe / lịch / phiếu thì báo bị chặn; không thì popup cảnh báo + nhập lại mã Hub để xác nhận.
+  const askDeleteHub = () => {
+    const impact = getDeleteImpact("hub", hub.hubId);
+    if (!impact) return;
+    if (impact.blockers.length > 0) {
+      setBlocked({ title: "Không thể xóa Hub", resource: impact.label, reason: impact.blockers.join(" "), reasons: impact.blockers });
+    } else {
+      setDeleting(impact);
+    }
+  };
+
+  const confirmDeleteHub = () => {
+    if (!deleting) return;
+    const result = deleteHub(deleting.id);
+    setDeleting(null);
+    if (result.ok) {
+      navigate("/admin/hubs");
+    } else if (result.kind === "blocked") {
+      setBlocked({ title: "Không thể xóa Hub", resource: result.resource, reason: result.reason, reasons: result.reasons });
     }
   };
 
@@ -159,6 +186,31 @@ function ConfigForm({ hub }: { hub: Hub }) {
         </div>
       </section>
 
+      {canEdit && (
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-3">
+          <div className="text-sm">
+            <p className="font-semibold text-red-800">Vùng nguy hiểm</p>
+            <p className="text-slate-700">
+              Xóa vĩnh viễn Hub này cùng toàn bộ chỗ đỗ và cổng sạc. Chỉ xóa được khi Hub đã trống (không còn xe, lịch đặt, phiếu sự cố).
+            </p>
+          </div>
+          <Button variant="danger" onClick={askDeleteHub}>
+            Xóa Hub
+          </Button>
+        </section>
+      )}
+
+      {deleting && (
+        <ConfirmDeleteModal
+          title="Xóa Hub"
+          label={deleting.label}
+          confirmCode={deleting.code}
+          consequences={deleting.consequences}
+          retained={deleting.retained}
+          onConfirm={confirmDeleteHub}
+          onClose={() => setDeleting(null)}
+        />
+      )}
       <BlockedModal info={blocked} onClose={() => setBlocked(null)} />
     </div>
   );

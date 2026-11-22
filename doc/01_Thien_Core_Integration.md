@@ -23,7 +23,7 @@
 
 ## B. Use case
 ### UC20 – Xác thực sinh viên (ĐÃ CÓ SƯỜN: 5 màn hình + `services/authService.ts` + `RequireRole`)
-- Còn lại: tinh chỉnh giao diện theo mockup, thay `mockAuthAdapter` khi nối hệ thống thật, xoá khung "Tài khoản demo" trước khi nộp.
+- Còn lại: tinh chỉnh giao diện theo mockup, thay `mockAuthAdapter` khi nối hệ thống thật. (Khung "Tài khoản demo" đã bỏ; tài khoản mẫu ghi ở README.)
 - Trang login giả lập: chọn tài khoản mẫu (hoặc nhập token → `MockAuthAdapter implements AuthAdapter`).
 - `AuthService.login(token)`, `logout()`; lưu `CurrentUser` trong store; chặn route theo vai trò.
 - Luồng lỗi: token sai/hết hạn → thông báo lỗi.
@@ -37,9 +37,21 @@
 ### UC22 + NIFR-02 – Cập nhật dữ liệu trạng thái (ĐÃ XONG: `engine/iotSimulator.ts`, `engine/m1Handlers.ts`, `services/faultInjection.ts`)
 - Lưu ý cho M3: bộ giả lập IoT **không** đụng pin xe đang CHARGING; M3 tự cập nhật theo phiên sạc. Gây lỗi cổng đang sạc chỉ đặt cổng FAULTY, M3/M4 xử lý phiên sạc bị ảnh hưởng.
 - Lưu ý cho M4: gây lỗi tạo `Alert` (PORT_FAULT/VEHICLE_FAULT) và thông báo vận hành; **ticket** do NIFR-04 của M4 tạo khi thấy thiết bị FAULTY chưa có ticket.
-- `engine/iotSimulator.ts implements IoTDataAdapter`: định kỳ phát `StateUpdate` (pin xe đang IN_USE giảm, xe CHARGING tăng nếu không có session do M3 quản lý, ngẫu nhiên báo cổng/xe lỗi ở mức rất thấp, có nút bật/tắt).
+- `engine/iotSimulator.ts implements IoTDataAdapter`: định kỳ phát `StateUpdate` (pin xe đang IN_USE giảm; xe CHARGING **không có phiên sạc CHARGING nào quản lý** tăng 1% / phút mô phỏng (`IOT_CHARGE_PCT_PER_MIN`) và về AVAILABLE khi đầy; xe có phiên sạc thì M3 lo; ngẫu nhiên báo cổng/xe lỗi ở mức rất thấp, có nút bật/tắt). Tốc độ giảm pin và chu kỳ phát chỉnh ở Cài đặt.
 - `StateUpdateService.applyStateUpdate / validateUpdate`: dữ liệu hợp lệ → ghi store; không hợp lệ → bỏ qua và log.
 - Có nút "Gây lỗi cổng sạc X" / "Gây lỗi xe Y" cho demo → gọi `OperationsService.handleIncident` của M4.
+
+### Cài đặt hệ thống (ĐÃ XONG: `/admin/settings`, `config/settings.ts`, `store/settingsSlice.ts`, `services/settingsService.ts`)
+- Chỉ Quản trị viên lưu được; vai trò khác xem ở chế độ chỉ đọc. Có "Hủy thay đổi" và "Khôi phục mặc định". Cài đặt **không bị xoá** khi bấm Reset ở Demo.
+- Nhóm: **Giữ chỗ** (thời hạn giữ xe mặc định 30 giây, giữ chỗ đỗ 120 giây), **ngưỡng mặc định cho Hub mới**, **công suất cổng sạc tối đa**, **dữ liệu ngoài mô phỏng** (hệ số Metro surge, chu kỳ lấy dữ liệu Metro, chu kỳ IoT, tốc độ giảm pin), **báo cáo** (khoảng thời gian tối đa, số báo cáo lưu lại).
+- Mã nghiệp vụ đọc bằng `getSettings()` **ngay lúc dùng** (đừng lưu vào biến module). Đổi cài đặt chỉ ảnh hưởng thao tác **mới**: lượt đặt đang giữ vẫn hết hạn theo hạn lúc đặt, Hub / cổng đã có không bị đổi.
+- **M2** đọc `vehicleReservationMs`; **M3** đọc `parkingReservationMs` khi làm đặt chỗ đỗ (hiện chưa có chỗ nào dùng giá trị này).
+
+### Việc định kỳ tập trung (`engine/registerHandlers.ts`)
+- `RootLayout` gọi `registerAllTickHandlers()` một lần. Mỗi module có file riêng: `m1Handlers.ts`, `m2Handlers.ts` (hết hạn đặt xe, NIFR-01). **M3 thêm `engine/m3Handlers.ts`** (hết hạn đặt chỗ đỗ, tiến độ phiên sạc) rồi thêm một dòng vào mảng trong `registerHandlers.ts`. Không đăng ký handler như hiệu ứng phụ khi import trang.
+
+### Hub có nhận / giao xe được không (`utils/hubAvailability.ts`)
+- `getHubPickupBlocker(hubId)` và `getHubIntakeBlocker(hubId)`: trả lý do chặn hoặc `null`. Phương án "Tạm khóa cổng tiếp nhận" của M4 (UC15) tạo khoá thật (`store.intakeLocks`, hết hạn theo giờ mô phỏng) nên **trả xe** bị chặn ở Hub đó; M3 phải gọi `getHubIntakeBlocker` khi đặt chỗ đỗ trước.
 
 ### UC11 + UC19 – Hub & chỗ đỗ (ĐÃ CÓ BẢN ĐẦU theo mockup)
 - Xem `05_UC11_UC19_Hub_Monitoring_Config.md` (mô tả đầy đủ, mapping mockup, API, quy tắc, việc còn lại).

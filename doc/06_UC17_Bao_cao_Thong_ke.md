@@ -28,14 +28,18 @@ Mỗi báo cáo có: biểu đồ theo ngày (cột xanh đậm = cuối tuần,
 - **Dữ liệu không đủ:** chọn mốc cũ hơn 180 ngày (`REPORT_HISTORY_DAYS`) → hiện trạng thái lỗi "Không thể tạo báo cáo".
 
 ## 4. Dữ liệu (quan trọng)
-**Số liệu lịch sử là DỮ LIỆU MẪU** do `reportEngine.ts` sinh xác định (cùng Hub + cùng ngày luôn ra cùng số) theo sức chứa và loại Hub, có nhịp tuần (cuối tuần thấp) và đỉnh theo giờ. Báo cáo **không** đọc từ chuyến đi / phiên sạc thật trong store, vì store chỉ có vài bản ghi. Danh sách Hub lấy từ store nên thêm Hub (UC19) là báo cáo có thêm Hub. Đề cho phép dữ liệu hard-code; muốn dùng dữ liệu thật thì thay hàm `makeFact` bằng tổng hợp từ `trips` / `chargingSessions`.
+**Các ngày trước hôm nay là DỮ LIỆU MẪU** do `reportEngine.ts` sinh xác định (cùng Hub + cùng ngày luôn ra cùng số) theo sức chứa và loại Hub, có nhịp tuần (cuối tuần thấp) và đỉnh theo giờ. Đề cho phép dữ liệu hard-code.
+
+**Ngày hôm nay (giờ mô phỏng) dùng số liệu THẬT** lấy từ store bởi `services/reportLiveData.ts`: lượt đặt xe (không tính lượt tự hủy; "được đáp ứng" = còn giữ hoặc đã nhận xe), chuyến đi theo Hub xuất phát (`trip.fromHubId`), yêu cầu sạc, phiên sạc và điện năng ước tính từ % pin đã sạc, mức lấp đầy chỗ đỗ / cổng sạc hiện tại, số cổng lỗi. Riêng **thời gian chờ** vẫn là số mẫu vì chưa có nguồn thật. Vì hôm nay chưa hết ngày nên số thường nhỏ hơn các ngày mẫu; trang kết quả có dòng ghi chú nói rõ ngày nào là số thật, ngày nào là mẫu (`ReportData.liveDate`). Khoảng thời gian không chứa hôm nay thì 100% là số mẫu. `reportEngine.ts` vẫn là hàm thuần, không tự đọc store: số thật được truyền vào qua `input.live`.
+
+Danh sách Hub lấy từ store nên thêm Hub (UC19) là báo cáo có thêm Hub.
 
 ## 5. Xuất file (đều là file thật, đã kiểm tra bằng openpyxl / pdftotext)
 | Định dạng | Nội dung | Ghi chú |
 |---|---|---|
 | **XLSX** | 5 sheet: Tổng quan, Theo ngày, Theo giờ, Theo Hub, Heatmap | Gói OOXML tối thiểu, tự dựng, không cần thư viện |
 | **CSV** | Các bảng nối nhau, UTF-8 có BOM | Excel đọc đúng tiếng Việt |
-| **PDF** | Chỉ số, bảng tổng hợp, heatmap, dữ liệu theo ngày | **Bản văn bản: không có biểu đồ và không dấu tiếng Việt** (font chuẩn của PDF) |
+| **PDF** | Chỉ số, bảng tổng hợp, heatmap, dữ liệu theo ngày | Bản văn bản, **không có biểu đồ**. **Đủ dấu tiếng Việt** nhờ nhúng font Roboto Mono (OFL, `src/assets/fonts/`, nạp bởi `utils/pdfFontLoader.ts`); font đơn cách nên bảng canh cột không đổi. Tệp nặng ~190 KB vì nhúng đủ font. Nếu không tải được font thì tự quay về bản Courier không dấu |
 
 Tên file theo mockup: `BaoCao_ChatLuongDichVu_092026.pdf` (chuyên đề + tháng/năm của ngày kết thúc). "Tải xuống" tải file thật về máy.
 
@@ -53,7 +57,8 @@ Tên file theo mockup: `BaoCao_ChatLuongDichVu_092026.pdf` (chuyên đề + thá
 5. Báo cáo định kỳ: thêm email, **Xác nhận**; tăng tốc thời gian ở Demo (×60) để thấy báo cáo tự được tạo và thông báo gửi email.
 
 ## 8. Chưa làm / giả định
-- PDF không có biểu đồ (cần thư viện PDF nếu muốn).
+- PDF không có biểu đồ (cần thư viện PDF nếu muốn). Font nhúng chỉ hỗ trợ file TrueType tĩnh (`.ttf`), xem `utils/ttfFont.ts`.
+- Số liệu "thật" của hôm nay chỉ phản ánh hoạt động trong phiên chạy hiện tại (không lưu qua F5).
 - Chuyên đề khác "Chất lượng dịch vụ" chưa có mockup riêng: dùng chung bố cục của mockup, nội dung KPI / heatmap do mình đề xuất, cần đối chiếu với nhóm.
 - Ma trận di chuyển khi lọc theo Hub chỉ giữ các tuyến liên quan Hub đó; biểu đồ theo ngày dùng chuyến xuất phát.
 - Email chỉ là thông báo trong ứng dụng.

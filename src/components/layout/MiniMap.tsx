@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { HUB_MAP_PINS } from "../../config/mapPositions";
+import { useMemo } from "react";
+import { resolveHubPins } from "../../config/mapPositions";
 import { useStore } from "../../store";
 import { computeHubStats } from "../../utils/hubStats";
 
@@ -9,6 +10,8 @@ export function MiniMap() {
   const slots = useStore((s) => s.parkingSlots);
   const ports = useStore((s) => s.chargingPorts);
   const vehicles = useStore((s) => s.vehicles);
+  // Hub tạo thêm (UC19) cũng có chấm trên bản đồ: vị trí tự xếp vào ô trống.
+  const pins = useMemo(() => resolveHubPins(hubs), [hubs]);
 
   return (
     <div className="relative h-60 overflow-hidden rounded-xl border border-slate-200 bg-brand-50">
@@ -19,7 +22,7 @@ export function MiniMap() {
       <div className="absolute bottom-[16%] right-[8%] h-[26%] w-[32%] rounded bg-slate-200/70" />
 
       {hubs.map((hub) => {
-        const pin = HUB_MAP_PINS[hub.hubId];
+        const pin = pins[hub.hubId];
         if (!pin) return null;
         const { utilization } = computeHubStats({ parkingSlots: slots, chargingPorts: ports, vehicles }, hub.hubId);
         const color =

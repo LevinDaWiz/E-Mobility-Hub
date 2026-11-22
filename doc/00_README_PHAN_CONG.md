@@ -6,10 +6,10 @@ Dự án: `E-Mobility-Hub` (Vite + React 19 + TypeScript). **Chỉ frontend**, t
 
 | # | Vai trò | Use case | Engine / NIFR | File hướng dẫn |
 |---|---------|----------|---------------|----------------|
-| M1 | Core, Tích hợp, Báo cáo, Admin, Giám sát & cấu hình Hub | UC11, UC17, UC19, UC20, UC21, UC22 | NIFR-02 (cập nhật trạng thái), điều phối tick | `01_Member1_Core_Integration.md` |
-| M2 | Sinh viên – xe dùng chung | UC01, UC02, UC03, UC04, UC06 | NIFR-01 (hết hạn đặt xe) | `02_Member2_Student_SharedVehicle.md` |
-| M3 | Sinh viên – xe cá nhân, Đỗ & Sạc | UC05, UC07, UC08, UC09, UC10, UC12 | NIFR-01 (hết hạn đặt chỗ), NIFR-05, NIFR-06 | `03_Member3_Parking_Charging.md` |
-| M4 | Vận hành & Mô phỏng | UC13, UC14, UC15, UC16, UC18 | NIFR-03, NIFR-04 | `04_Member4_Operator_Simulation.md` |
+| M1 | Core, Tích hợp, Báo cáo, Admin, Giám sát & cấu hình Hub | UC11, UC17, UC19, UC20, UC21, UC22 | NIFR-02 (cập nhật trạng thái), điều phối tick | `01_Thien_Core_Integration.md` |
+| M2 | Sinh viên – xe dùng chung | UC01, UC02, UC03, UC04, UC06 | NIFR-01 (hết hạn đặt xe) | `02_Khang_Student_SharedVehicle.md` |
+| M3 | Sinh viên – xe cá nhân, Đỗ & Sạc | UC05, UC07, UC08, UC09, UC10, UC12 | NIFR-01 (hết hạn đặt chỗ), NIFR-05, NIFR-06 | `03_Triet_Parking_Charging.md` |
+| M4 | Vận hành & Mô phỏng | UC13, UC14, UC15, UC16, UC18 | NIFR-03, NIFR-04 | `04_Vy_Operator_Simulation.md` |
 
 Chi tiết UC11 + UC19 (Hub & chỗ đỗ): `05_UC11_UC19_Hub_Monitoring_Config.md`. Đủ 22 UC. M1 làm nền tảng trước nên nhẹ về nghiệp vụ ở tuần đầu, M2 nhẹ nhất về số UC nhưng có luồng dài nhất (đặt → nhận → trả).
 
@@ -47,6 +47,8 @@ src/
 
 **Quy tắc vàng:** mỗi người chỉ sửa file trong thư mục mình sở hữu. Cần gì ở thư mục người khác → dùng hàm họ export (mục 5) hoặc nhắn họ.
 
+> **Cập nhật 5 – Cài đặt, khoá nhận xe, báo cáo dữ liệu thật:** (1) trang **Cài đặt** `/admin/settings` (thời hạn giữ xe / giữ chỗ đỗ, ngưỡng Hub mới, công suất cổng tối đa, tham số mô phỏng, giới hạn báo cáo) đọc bằng `getSettings()`; (2) việc định kỳ đăng ký tập trung ở `engine/registerHandlers.ts` (M3 thêm `m3Handlers.ts`); (3) `utils/hubAvailability.ts` cho M2 / M3 biết Hub có nhận / giao xe được không, và "Tạm khóa cổng tiếp nhận" của M4 giờ khoá thật việc trả xe; (4) `unlockVehicle(reservationId, studentId)` kiểm tra chủ lượt đặt; (5) `Trip.fromHubId / toHubId` và `VehicleReservation.hubId` để báo cáo theo Hub; (6) báo cáo dùng số liệu thật cho ngày hôm nay, PDF đủ dấu tiếng Việt; (7) Hub tạo thêm tự có chấm trên bản đồ; (8) Quản trị viên **xóa được Hub / chỗ đỗ / cổng sạc** (UC19) qua popup cảnh báo + nhập lại mã, bị chặn nếu còn xe / lịch / phiếu sự cố (xem `05_...`). M2 / M3 / M4: khi cần tra Hub / cổng / chỗ đỗ hãy chấp nhận trường hợp đã bị xóa (hiển thị theo mã, không `hub!.name`). Chi tiết ở `01_...`, `05_...`, `06_...`.
+>
 > **Cập nhật 4 – UC11 + UC19 đã có:** màn hình Hub & chỗ đỗ làm theo mockup (danh sách, chi tiết 4 tab, form thêm/sửa, chặn vô hiệu hóa, 409). **UC11 chuyển từ M4 sang M1.** Mỗi Hub có ngưỡng riêng (`hub.thresholds`), slot có `kind/vehicleId/sensorId`, cổng sạc có `kind/dockId`; thêm `SlotStatus.MAINTENANCE` và `PortStatus.MAINTENANCE`. Xem file `05_...`.
 >
 > **Cập nhật 2 – Sườn giao diện:** đã có sườn 2 giao diện theo mockup Miro (`E-Mobility-Hub-skeleton.zip`): **app mobile `/app/...`** cho sinh viên và **site quản trị `/admin/...`** có sidebar; luồng đăng nhập SSO giả lập (UC20) đủ 5 màn hình; chặn truy cập theo vai trò. Mỗi người chỉ thêm route/mục menu trong `module.tsx` của mình (xem README trong project). Bảng map nhanh:

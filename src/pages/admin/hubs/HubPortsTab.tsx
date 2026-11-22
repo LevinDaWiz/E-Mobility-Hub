@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Badge, Button, Card, Pagination, StatCard, Table, type Column } from "../../../components/ui";
+import { Badge, Button, Card, ConfirmDeleteModal, Pagination, StatCard, Table, type Column } from "../../../components/ui";
 import { usePagination } from "../../../hooks/usePagination";
-import { importPorts, setPortMaintenance } from "../../../services/hubConfigService";
+import { deletePort, getDeleteImpact, importPorts, setPortMaintenance, type DeleteImpact } from "../../../services/hubConfigService";
 import { useStore } from "../../../store";
 import { inputClass } from "../../../styles/formClasses";
 import { PORT_STATUS_BADGE } from "../../../styles/statusColors";
@@ -27,6 +27,7 @@ export function HubPortsTab() {
   const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<ChargingPort | null>(null);
   const [blocked, setBlocked] = useState<BlockedInfo | null>(null);
+  const [deleting, setDeleting] = useState<DeleteImpact | null>(null);
 
   const ports = useMemo(
     () => allPorts.filter((p) => p.hubId === hubId).sort((a, b) => naturalCompare(a.portId, b.portId)),
@@ -46,6 +47,26 @@ export function HubPortsTab() {
   const toggleMaintenance = (port: ChargingPort) => {
     const result = setPortMaintenance(port.portId, port.status !== PortStatus.MAINTENANCE);
     if (!result.ok && result.kind === "blocked") setBlocked({ resource: result.resource, reason: result.reason });
+  };
+
+  // Xóa: đang sạc / có lịch sạc / có phiếu sự cố mở thì báo bị chặn; không thì popup cảnh báo + xác nhận lại.
+  const askDelete = (port: ChargingPort) => {
+    const impact = getDeleteImpact("port", port.portId);
+    if (!impact) return;
+    if (impact.blockers.length > 0) {
+      setBlocked({ title: "Không thể xóa cổng sạc", resource: impact.label, reason: impact.blockers.join(" "), reasons: impact.blockers });
+    } else {
+      setDeleting(impact);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (!deleting) return;
+    const result = deletePort(deleting.id);
+    setDeleting(null);
+    if (!result.ok && result.kind === "blocked") {
+      setBlocked({ title: "Không thể xóa cổng sạc", resource: result.resource, reason: result.reason, reasons: result.reasons });
+    }
   };
 
   const columns: Column<ChargingPort>[] = [
@@ -68,6 +89,9 @@ export function HubPortsTab() {
                 </Button>
                 <Button size="sm" variant="ghost" className="ring-1 ring-slate-300" onClick={() => toggleMaintenance(p)}>
                   {p.status === PortStatus.MAINTENANCE ? "Bật lại" : "Đặt bảo trì"}
+                </Button>
+                <Button size="sm" variant="ghost" className="text-red-600 ring-1 ring-red-200" onClick={() => askDelete(p)}>
+                  Xóa
                 </Button>
               </div>
             ),
@@ -148,6 +172,17 @@ export function HubPortsTab() {
         onClose={() => setImporting(false)}
         onImport={(rows) => importPorts(hubId, rows)}
       />
+      {deleting && (
+        <ConfirmDeleteModal
+          title="Xóa cổng sạc"
+          label={deleting.label}
+          confirmCode={deleting.code}
+          consequences={deleting.consequences}
+          retained={deleting.retained}
+          onConfirm={confirmDelete}
+          onClose={() => setDeleting(null)}
+        />
+      )}
       <BlockedModal info={blocked} onClose={() => setBlocked(null)} />
     </div>
   );

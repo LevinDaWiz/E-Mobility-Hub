@@ -76,6 +76,10 @@ export interface CoreSliceActions {
   addChargingPort: (port: ChargingPort) => void;
   addParkingSlots: (slots: ParkingSlot[]) => void;
   addChargingPorts: (ports: ChargingPort[]) => void;
+  // Xóa (UC19). removeHub xóa luôn chỗ đỗ và cổng sạc của Hub trong một lần cập nhật.
+  removeParkingSlots: (slotIds: string[]) => void;
+  removeChargingPorts: (portIds: string[]) => void;
+  removeHub: (hubId: string) => void;
 
   addNotification: (n: AppNotification) => void;
   markNotificationRead: (id: string) => void;
@@ -167,6 +171,16 @@ export const createCoreSlice: StateCreator<AppState, [], [], CoreSliceActions> =
   addChargingPort: (port) => set((s) => ({ chargingPorts: [...s.chargingPorts, port] })),
   addParkingSlots: (slots) => set((s) => ({ parkingSlots: [...s.parkingSlots, ...slots] })),
   addChargingPorts: (ports) => set((s) => ({ chargingPorts: [...s.chargingPorts, ...ports] })),
+  removeParkingSlots: (slotIds) =>
+    set((s) => ({ parkingSlots: s.parkingSlots.filter((p) => !slotIds.includes(p.slotId)) })),
+  removeChargingPorts: (portIds) =>
+    set((s) => ({ chargingPorts: s.chargingPorts.filter((p) => !portIds.includes(p.portId)) })),
+  removeHub: (hubId) =>
+    set((s) => ({
+      hubs: s.hubs.filter((h) => h.hubId !== hubId),
+      parkingSlots: s.parkingSlots.filter((p) => p.hubId !== hubId),
+      chargingPorts: s.chargingPorts.filter((p) => p.hubId !== hubId),
+    })),
 
   addNotification: (n) => set((s) => ({ notifications: [...s.notifications, n] })),
   markNotificationRead: (id) =>

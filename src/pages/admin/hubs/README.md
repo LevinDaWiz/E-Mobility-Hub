@@ -8,7 +8,8 @@ Màn hình giám sát và cấu hình Hub, chỗ đỗ, cổng sạc theo mockup
 | `HubDetailLayout.tsx` | Khung chi tiết Hub + 4 tab |
 | `HubOverviewTab.tsx` / `HubSlotsTab.tsx` / `HubPortsTab.tsx` / `HubConfigTab.tsx` | 4 tab |
 | `AddHubModal.tsx`, `ResourceModals.tsx` | Form thêm / sửa Hub, chỗ đỗ, cổng sạc (lỗi đỏ dưới từng ô) |
-| `BlockedModal.tsx` | "Không thể vô hiệu hóa tài nguyên" |
+| `BlockedModal.tsx` | "Không thể vô hiệu hóa / xóa tài nguyên" (một hoặc nhiều lý do) |
+| (dùng `components/ui/ConfirmDeleteModal.tsx`) | Xóa Hub / chỗ đỗ / cổng sạc: popup cảnh báo rồi nhập lại mã để xác nhận (chỉ Quản trị viên) |
 | `ImportModal.tsx` | Nhập CSV / JSON |
 
 Logic nghiệp vụ nằm ở `src/services/hubConfigService.ts` (trả `Result`: `validation` / `blocked` / `conflict`), trạng thái và cảnh báo Hub ở `src/utils/hubStatus.ts`.

@@ -112,6 +112,8 @@ export interface OpsSliceActions {
   setActiveSimulationId: (id: string | null) => void;
   rejectSimulationRun: (runId: string, reason: string) => void;
 
+  // Xóa cảnh báo và khoá nhận xe của một Hub đã bị xóa (phiếu sự cố đã đóng được giữ lại làm lịch sử).
+  purgeHubOps: (hubId: string) => void;
   lockHubIntake: (lock: HubIntakeLock) => void;
   unlockHubIntake: (hubId: string) => void;
 }
@@ -230,6 +232,11 @@ export const createOpsSlice: StateCreator<AppState, [], [], OpsSliceActions> = (
       ),
     })),
 
+  purgeHubOps: (hubId) =>
+    set((s) => ({
+      alerts: s.alerts.filter((a) => a.hubId !== hubId),
+      intakeLocks: s.intakeLocks.filter((l) => l.hubId !== hubId),
+    })),
   // Mỗi Hub chỉ có một khoá; khoá mới thay khoá cũ.
   lockHubIntake: (lock) =>
     set((s) => ({ intakeLocks: [...s.intakeLocks.filter((l) => l.hubId !== lock.hubId), lock] })),

@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Badge, Button, Card, Pagination, StatCard, Table, type Column } from "../../../components/ui";
+import { Badge, Button, Card, ConfirmDeleteModal, Pagination, StatCard, Table, type Column } from "../../../components/ui";
 import { usePagination } from "../../../hooks/usePagination";
-import { importSlots, setSlotMaintenance } from "../../../services/hubConfigService";
+import { deleteSlot, getDeleteImpact, importSlots, setSlotMaintenance, type DeleteImpact } from "../../../services/hubConfigService";
 import { useStore } from "../../../store";
 import { inputClass } from "../../../styles/formClasses";
 import { SLOT_STATUS_BADGE } from "../../../styles/statusColors";
@@ -26,6 +26,7 @@ export function HubSlotsTab() {
   const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<ParkingSlot | null>(null);
   const [blocked, setBlocked] = useState<BlockedInfo | null>(null);
+  const [deleting, setDeleting] = useState<DeleteImpact | null>(null);
 
   const slots = useMemo(
     () => allSlots.filter((s) => s.hubId === hubId).sort((a, b) => naturalCompare(a.slotId, b.slotId)),
@@ -43,6 +44,26 @@ export function HubSlotsTab() {
   const toggleMaintenance = (slot: ParkingSlot) => {
     const result = setSlotMaintenance(slot.slotId, slot.status !== SlotStatus.MAINTENANCE);
     if (!result.ok && result.kind === "blocked") setBlocked({ resource: result.resource, reason: result.reason });
+  };
+
+  // Xóa: còn xe / lịch đặt thì báo bị chặn; không thì mở popup cảnh báo + xác nhận lại.
+  const askDelete = (slot: ParkingSlot) => {
+    const impact = getDeleteImpact("slot", slot.slotId);
+    if (!impact) return;
+    if (impact.blockers.length > 0) {
+      setBlocked({ title: "Không thể xóa chỗ đỗ", resource: impact.label, reason: impact.blockers.join(" "), reasons: impact.blockers });
+    } else {
+      setDeleting(impact);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (!deleting) return;
+    const result = deleteSlot(deleting.id);
+    setDeleting(null);
+    if (!result.ok && result.kind === "blocked") {
+      setBlocked({ title: "Không thể xóa chỗ đỗ", resource: result.resource, reason: result.reason, reasons: result.reasons });
+    }
   };
 
   const columns: Column<ParkingSlot>[] = [
@@ -77,6 +98,9 @@ export function HubSlotsTab() {
                 </Button>
                 <Button size="sm" variant="ghost" className="ring-1 ring-slate-300" onClick={() => toggleMaintenance(s)}>
                   {s.status === SlotStatus.MAINTENANCE ? "Bật lại" : "Đặt bảo trì"}
+                </Button>
+                <Button size="sm" variant="ghost" className="text-red-600 ring-1 ring-red-200" onClick={() => askDelete(s)}>
+                  Xóa
                 </Button>
               </div>
             ),
@@ -156,6 +180,17 @@ export function HubSlotsTab() {
         onClose={() => setImporting(false)}
         onImport={(rows) => importSlots(hubId, rows)}
       />
+      {deleting && (
+        <ConfirmDeleteModal
+          title="Xóa chỗ đỗ"
+          label={deleting.label}
+          confirmCode={deleting.code}
+          consequences={deleting.consequences}
+          retained={deleting.retained}
+          onConfirm={confirmDelete}
+          onClose={() => setDeleting(null)}
+        />
+      )}
       <BlockedModal info={blocked} onClose={() => setBlocked(null)} />
     </div>
   );

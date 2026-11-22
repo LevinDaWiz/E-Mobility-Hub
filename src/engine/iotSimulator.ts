@@ -1,7 +1,8 @@
-import { IOT_RANDOM_FAULT_PROB } from "../config/constants";
+import { IOT_CHARGE_PCT_PER_MIN, IOT_RANDOM_FAULT_PROB } from "../config/constants";
 import { useStore } from "../store";
 import {
   PortStatus,
+  SessionStatus,
   VehicleStatus,
   type IoTDataAdapter,
   type StateListener,
@@ -9,8 +10,9 @@ import {
 } from "../types";
 
 // ===== M1 sở hữu (UC22): bộ giả lập dữ liệu IoT =====
-// Phát StateUpdate định kỳ (pin xe đang đi giảm dần, tuỳ chọn lỗi ngẫu nhiên). Xe đang CHARGING
-// do M3 (ChargingService) cập nhật pin theo phiên sạc nên bộ giả lập không đụng tới.
+// Phát StateUpdate định kỳ (pin xe đang đi giảm dần, tuỳ chọn lỗi ngẫu nhiên). Xe đang CHARGING có phiên sạc
+// (ChargingSession CHARGING) do M3 (ChargingService) cập nhật pin nên bộ giả lập không đụng tới. Chỉ khi xe
+// CHARGING mà KHÔNG có phiên nào quản lý thì bộ giả lập tăng pin dần và trả xe về AVAILABLE khi đầy.
 
 const SOURCE_ID = "iot-simulator";
 
@@ -33,7 +35,8 @@ class IoTSimulator implements IoTDataAdapter {
 
   // Tính các cập nhật phát sinh từ lần phát trước tới thời điểm mô phỏng hiện tại.
   async fetchLatestState(): Promise<StateUpdate[]> {
-    const { vehicles, chargingPorts, clock, iot, settings } = useStore.getState();
+    const { vehicles, chargingPorts, chargingSessions, clock, iot, settings } = useStore.getState();
+    const managedByM3 = new Set(chargingSessions.filter((cs) => cs.status === SessionStatus.CHARGING).map((cs) => cs.vehicleId));
     const now = clock.now;
     const elapsedMin = this.lastEmitAt === null ? 0 : Math.max(0, now - this.lastEmitAt) / 60_000;
     this.lastEmitAt = now;
@@ -44,6 +47,13 @@ class IoTSimulator implements IoTDataAdapter {
       if (v.status === VehicleStatus.IN_USE && elapsedMin > 0 && v.batteryLevel > 0) {
         const next = Math.max(0, Math.round((v.batteryLevel - settings.iotDrainPctPerMin * elapsedMin) * 100) / 100);
         updates.push({ sourceId: SOURCE_ID, timestamp, payload: { entity: "vehicle", id: v.vehicleId, batteryLevel: next } });
+      }
+      if (v.status === VehicleStatus.CHARGING && !managedByM3.has(v.vehicleId) && elapsedMin > 0 && v.batteryLevel < 100) {
+        const next = Math.min(100, Math.round((v.batteryLevel + IOT_CHARGE_PCT_PER_MIN * elapsedMin) * 100) / 100);
+        updates.push({ sourceId: SOURCE_ID, timestamp, payload: { entity: "vehicle", id: v.vehicleId, batteryLevel: next } });
+        if (next >= 100) {
+          updates.push({ sourceId: SOURCE_ID, timestamp, payload: { entity: "vehicle", id: v.vehicleId, status: VehicleStatus.AVAILABLE } });
+        }
       }
       if (iot.randomFaults && v.status === VehicleStatus.AVAILABLE && Math.random() < IOT_RANDOM_FAULT_PROB) {
         updates.push({ sourceId: SOURCE_ID, timestamp, payload: { entity: "vehicle", id: v.vehicleId, status: VehicleStatus.FAULTY } });

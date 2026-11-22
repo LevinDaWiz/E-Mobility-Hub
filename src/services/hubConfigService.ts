@@ -2,6 +2,9 @@ import { useStore } from "../store";
 import {
   HubOperationalStatus,
   HubType,
+  ReservationStatus,
+  DispatchStatus,
+  TicketStatus,
   PortKind,
   PortStatus,
   SessionStatus,
@@ -26,7 +29,7 @@ export type FieldErrors = Record<string, string>;
 export type Result<T = void> =
   | { ok: true; value: T }
   | { ok: false; kind: "validation"; errors: FieldErrors }
-  | { ok: false; kind: "blocked"; resource: string; reason: string }
+  | { ok: false; kind: "blocked"; resource: string; reason: string; reasons?: string[] }
   | { ok: false; kind: "conflict"; yourVersion: number; latest: Hub };
 
 const success = <T>(value: T): Result<T> => ({ ok: true, value });
@@ -445,6 +448,189 @@ export function setPortMaintenance(portId: string, on: boolean): Result {
   }
   touchHub(port.hubId);
   return success(undefined);
+}
+
+// ---------- Xóa Hub / chỗ đỗ / cổng sạc (chỉ Quản trị viên) ----------
+// Quy trình ở giao diện: getDeleteImpact (chặn nếu còn xe / lịch / phiếu) → popup cảnh báo → nhập mã để xác nhận lại →
+// deleteX (kiểm tra lại lần cuối vì dữ liệu có thể đã đổi). Dữ liệu lịch sử (chuyến đi, phiên sạc đã kết thúc, phiếu sự cố
+// đã đóng) được giữ lại và hiển thị theo mã.
+
+export type DeleteKind = "hub" | "slot" | "port";
+
+export interface DeleteImpact {
+  kind: DeleteKind;
+  id: string;
+  code: string; // chuỗi người dùng phải nhập lại để xác nhận
+  label: string; // "Chỗ đỗ S01 · Hub KTX Khu A"
+  blockers: string[]; // còn lý do nào thì không được xóa
+  consequences: string[]; // những gì sẽ mất
+  retained: string[]; // những gì được giữ lại
+}
+
+const isOpenTicket = (status: TicketStatus) => status !== TicketStatus.CLOSED;
+const isLiveParkingReservation = (status: ReservationStatus) =>
+  status === ReservationStatus.ACTIVE || status === ReservationStatus.CONFIRMED;
+
+function slotDeleteBlockers(slot: ParkingSlot): string[] {
+  const blockers: string[] = [];
+  const reason = slotBlockReason(slot);
+  if (reason) blockers.push(`Chỗ đỗ ${reason}.`);
+  const live = state().parkingReservations.filter((r) => r.slotId === slot.slotId && isLiveParkingReservation(r.status));
+  if (live.length > 0 && !reason) blockers.push(`Chỗ đỗ có ${live.length} lượt đặt trước còn hiệu lực.`);
+  return blockers;
+}
+
+function portDeleteBlockers(port: ChargingPort): string[] {
+  const blockers: string[] = [];
+  const reason = portBlockReason(port);
+  if (reason) blockers.push(`Cổng sạc ${reason}.`);
+  const tickets = state().tickets.filter((t) => t.targetId === port.portId && isOpenTicket(t.status));
+  if (tickets.length > 0) blockers.push(`Cổng sạc có ${tickets.length} phiếu sự cố chưa đóng (${tickets.map((t) => t.ticketId).join(", ")}).`);
+  return blockers;
+}
+
+function hubDeleteBlockers(hubId: string): string[] {
+  const s = state();
+  const blockers: string[] = [];
+  if (s.hubs.length <= 1) blockers.push("Đây là Hub cuối cùng; hệ thống phải còn ít nhất một Hub.");
+
+  const vehicles = s.vehicles.filter((v) => v.currentHubId === hubId).length;
+  if (vehicles > 0) blockers.push(`Còn ${vehicles} phương tiện thuộc Hub này. Hãy điều phối sang Hub khác trước.`);
+
+  const slots = s.parkingSlots.filter((p) => p.hubId === hubId);
+  const busySlots = slots.filter((p) => slotDeleteBlockers(p).length > 0).length;
+  if (busySlots > 0) blockers.push(`Còn ${busySlots} chỗ đỗ đang có xe hoặc có lịch đặt trước.`);
+
+  const ports = s.chargingPorts.filter((p) => p.hubId === hubId);
+  const busyPorts = ports.filter((p) => portBlockReason(p) !== null).length;
+  if (busyPorts > 0) blockers.push(`Còn ${busyPorts} cổng sạc đang sạc hoặc có lịch sạc.`);
+
+  const tickets = s.tickets.filter((t) => t.hubId === hubId && isOpenTicket(t.status)).length;
+  if (tickets > 0) blockers.push(`Còn ${tickets} phiếu sự cố chưa đóng tại Hub này.`);
+
+  const dispatches = s.dispatchOrders.filter(
+    (o) => (o.fromHubId === hubId || o.toHubId === hubId) && o.status !== DispatchStatus.DONE && o.status !== DispatchStatus.CANCELLED,
+  ).length;
+  if (dispatches > 0) blockers.push(`Còn ${dispatches} lệnh điều phối chưa hoàn tất liên quan đến Hub này.`);
+
+  return blockers;
+}
+
+export function getDeleteImpact(kind: DeleteKind, id: string): DeleteImpact | null {
+  const s = state();
+  if (kind === "slot") {
+    const slot = s.parkingSlots.find((p) => p.slotId === id);
+    if (!slot) return null;
+    const hub = findHub(slot.hubId);
+    const code = resourceCode(slot.slotId, slot.hubId);
+    const remaining = s.parkingSlots.filter((p) => p.hubId === slot.hubId).length - 1;
+    return {
+      kind,
+      id,
+      code,
+      label: `Chỗ đỗ ${code} · ${hub?.name ?? slot.hubId}`,
+      blockers: slotDeleteBlockers(slot),
+      consequences: [
+        `Chỗ đỗ ${code} bị xóa vĩnh viễn khỏi ${hub?.name ?? slot.hubId}; Hub còn ${remaining} chỗ đỗ.`,
+        ...(remaining === 0 ? ["Hub sẽ không còn chỗ đỗ nào, sinh viên không thể trả xe tại đây."] : []),
+        "Tỷ lệ lấp đầy và cảnh báo quá tải của Hub được tính lại theo số chỗ mới.",
+      ],
+      retained: ["Lịch sử chuyến đi và đặt chỗ cũ vẫn được giữ."],
+    };
+  }
+  if (kind === "port") {
+    const port = s.chargingPorts.find((p) => p.portId === id);
+    if (!port) return null;
+    const hub = findHub(port.hubId);
+    const code = resourceCode(port.portId, port.hubId);
+    const remaining = s.chargingPorts.filter((p) => p.hubId === port.hubId).length - 1;
+    return {
+      kind,
+      id,
+      code,
+      label: `Cổng sạc ${code} · ${hub?.name ?? port.hubId}`,
+      blockers: portDeleteBlockers(port),
+      consequences: [
+        `Cổng sạc ${code} (${port.powerKw} kW) bị xóa vĩnh viễn khỏi ${hub?.name ?? port.hubId}; Hub còn ${remaining} cổng sạc.`,
+        ...(remaining === 0 ? ["Hub sẽ không còn cổng sạc nào, không thể xếp lịch sạc tại đây."] : []),
+        "Tỷ lệ sử dụng cổng sạc của Hub được tính lại theo số cổng mới.",
+      ],
+      retained: ["Lịch sử các phiên sạc đã kết thúc tại cổng này vẫn được giữ (hiển thị theo mã cổng)."],
+    };
+  }
+  const hub = findHub(id);
+  if (!hub) return null;
+  const slots = s.parkingSlots.filter((p) => p.hubId === id).length;
+  const ports = s.chargingPorts.filter((p) => p.hubId === id).length;
+  return {
+    kind,
+    id,
+    code: hub.hubId,
+    label: `Hub ${hub.name} (${hub.hubId})`,
+    blockers: hubDeleteBlockers(id),
+    consequences: [
+      `Hub ${hub.name} bị xóa vĩnh viễn cùng ${slots} chỗ đỗ và ${ports} cổng sạc của Hub.`,
+      "Cấu hình ngưỡng, trạng thái và các cảnh báo của Hub bị xóa.",
+      "Hub biến mất khỏi bản đồ, danh sách Hub của sinh viên, màn hình vận hành và báo cáo mới.",
+    ],
+    retained: ["Lịch sử chuyến đi, phiên sạc và phiếu sự cố đã đóng vẫn được giữ (hiển thị theo mã Hub)."],
+  };
+}
+
+const notAdmin = (resource: string): Result<never> => ({
+  ok: false,
+  kind: "blocked",
+  resource,
+  reason: "Chỉ Quản trị viên được xóa.",
+  reasons: ["Chỉ Quản trị viên được xóa."],
+});
+
+function blockedResult(impact: DeleteImpact): Result<never> {
+  return { ok: false, kind: "blocked", resource: impact.label, reason: impact.blockers.join(" "), reasons: impact.blockers };
+}
+
+// Kiểm tra lại toàn bộ điều kiện ngay lúc xóa (dữ liệu có thể đã đổi từ lúc mở popup).
+function checkedImpact(kind: DeleteKind, id: string): { impact: DeleteImpact } | { result: Result<never> } {
+  const impact = getDeleteImpact(kind, id);
+  const noun = kind === "hub" ? "Hub" : kind === "slot" ? "chỗ đỗ" : "cổng sạc";
+  if (!impact) return { result: invalid({ form: `Không tìm thấy ${noun}.` }) };
+  if (state().currentUser.role !== "ADMIN") return { result: notAdmin(impact.label) };
+  if (impact.blockers.length > 0) return { result: blockedResult(impact) };
+  return { impact };
+}
+
+export function deleteSlot(slotId: string): Result {
+  const checked = checkedImpact("slot", slotId);
+  if ("result" in checked) return checked.result;
+  const slot = state().parkingSlots.find((p) => p.slotId === slotId);
+  if (!slot) return invalid({ form: "Không tìm thấy chỗ đỗ." });
+  state().removeParkingSlots([slotId]);
+  touchHub(slot.hubId);
+  notify(state().currentUser.userId, `Đã xóa ${checked.impact.label}`, "success");
+  return success(undefined);
+}
+
+export function deletePort(portId: string): Result {
+  const checked = checkedImpact("port", portId);
+  if ("result" in checked) return checked.result;
+  const port = state().chargingPorts.find((p) => p.portId === portId);
+  if (!port) return invalid({ form: "Không tìm thấy cổng sạc." });
+  state().removeChargingPorts([portId]);
+  touchHub(port.hubId);
+  notify(state().currentUser.userId, `Đã xóa ${checked.impact.label}`, "success");
+  return success(undefined);
+}
+
+export function deleteHub(hubId: string): Result<{ slots: number; ports: number }> {
+  const checked = checkedImpact("hub", hubId);
+  if ("result" in checked) return checked.result;
+  const slots = state().parkingSlots.filter((p) => p.hubId === hubId).length;
+  const ports = state().chargingPorts.filter((p) => p.hubId === hubId).length;
+  state().removeHub(hubId);
+  state().purgeHubOps(hubId);
+  notify(state().currentUser.userId, `Đã xóa ${checked.impact.label}`, "success");
+  notify("role:OPERATOR", `${checked.impact.label} đã bị Quản trị viên xóa khỏi hệ thống.`, "warning");
+  return success({ slots, ports });
 }
 
 // ---------- Nhập từ tệp (CSV / JSON) ----------

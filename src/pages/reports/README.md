@@ -10,4 +10,4 @@ Mô tả đầy đủ: `phan-cong/06_UC17_Bao_cao_Thong_ke.md`.
 | `charts/` | `DailyChart`, `HubBars`, `Heatmap`, `Segmented` (SVG / CSS, không dùng thư viện biểu đồ) |
 
 Logic: `src/services/reportEngine.ts` (hàm thuần, dữ liệu mẫu xác định), `reportService.ts` (tạo, xuất, định kỳ), `src/utils/fileExport.ts` (CSV / XLSX / PDF).
-Dữ liệu lịch sử là **dữ liệu mẫu sinh theo quy mô từng Hub**, không đọc từ chuyến đi thật.
+Các ngày trước hôm nay là **dữ liệu mẫu sinh theo quy mô từng Hub**; **ngày hôm nay** dùng số liệu thật từ store (`src/services/reportLiveData.ts`), trang kết quả có ghi chú nói rõ. PDF nhúng font Roboto Mono (`src/utils/pdfFontLoader.ts`, `src/utils/ttfFont.ts`) nên đủ dấu tiếng Việt.

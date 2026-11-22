@@ -3,7 +3,7 @@ import { useStore } from "../store";
 import type { AuthAdapter, CurrentUser, Student } from "../types";
 
 // ===== M1 sở hữu (UC20): đăng nhập SSO giả lập =====
-// Quy ước demo (hiện trong khung "Tài khoản demo" ở màn hình IdP):
+// Quy ước demo (tài khoản mẫu ghi ở README):
 //   - Sinh viên: MSSV hoặc email + mật khẩu bất kỳ (khác rỗng).
 //   - Nhân sự: admin / operator1 / operator2 / manager + mật khẩu bất kỳ (khác rỗng).
 //   - Mật khẩu "timeout" → Identity System không phản hồi; "expired" → hết phiên xác thực.

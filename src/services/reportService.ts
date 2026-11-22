@@ -3,6 +3,7 @@ import { useStore } from "../store";
 import type { ExportFormat, Report, ReportData, ReportDetail, ReportFilters, ReportTopic, ScheduledReport } from "../types";
 import { makeId } from "../utils/id";
 import { buildCsv, buildPdf, buildXlsx, reportToSheets } from "../utils/fileExport";
+import { loadPdfFonts } from "../utils/pdfFontLoader";
 import { notify } from "./notificationService";
 import { buildLiveFacts } from "./reportLiveData";
 import { getSettings } from "./settingsService";
@@ -107,6 +108,8 @@ export async function exportReport(data: ReportData, format: ExportFormat): Prom
   await wait(REPORT_GENERATE_DELAY_MS * 0.75);
   if (state().reportFailureMode) throw new ReportError("FAILED", "Lỗi kết nối hoặc dữ liệu không đủ.");
   if (data.kpis.length === 0) throw new ReportError("FAILED", "Báo cáo không có dữ liệu.");
+  // PDF cần font nhúng để có dấu tiếng Việt; nếu tải font lỗi thì vẫn xuất được bản không dấu.
+  if (format === "PDF") await loadPdfFonts();
   return buildExportFile(data, format);
 }
 
@@ -203,6 +206,7 @@ export async function runDueSchedules(nowMs: number): Promise<number> {
         generatedAt: nowIso,
         live: buildLiveFacts(to, filters.vehicle),
       });
+      if (schedule.format === "PDF") await loadPdfFonts();
       const file = buildExportFile(data, schedule.format);
       state().addReport({
         reportId: makeId("RP"),

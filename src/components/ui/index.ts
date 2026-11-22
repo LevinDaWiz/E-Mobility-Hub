@@ -1,6 +1,7 @@
 export { Badge } from "./Badge";
 export { Button } from "./Button";
 export { Card } from "./Card";
+export { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 export { Countdown } from "./Countdown";
 export { FormField } from "./FormField";
 export { Modal } from "./Modal";

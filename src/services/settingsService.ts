@@ -32,7 +32,8 @@ const trimNum = (v: string): string => v.trim().replace(",", ".");
 
 function parseNumber(value: string): number | null {
   const v = trimNum(value);
-  if (v === "" || Number.isNaN(Number(v))) return null;
+  // Chỉ nhận số thập phân thường: từ chối 0x10, 1e3, Infinity... (Number() chấp nhận các dạng này).
+  if (!/^-?\d+(\.\d+)?$/.test(v)) return null;
   return Number(v);
 }
 

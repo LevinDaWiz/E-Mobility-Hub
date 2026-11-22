@@ -1,10 +1,12 @@
 import { formatDateVi } from "../services/reportEngine";
 import type { ReportData } from "../types";
+import { parseTtf, type TtfFont } from "./ttfFont";
 
 // ===== M1 (UC17): dựng file xuất CSV / XLSX / PDF không cần thư viện ngoài =====
 // - CSV: UTF-8 có BOM (Excel đọc đúng tiếng Việt).
 // - XLSX: gói OOXML tối thiểu (zip không nén), mở được bằng Excel / LibreOffice.
-// - PDF: văn bản (font Courier), không dấu và không có biểu đồ (font chuẩn của PDF không có chữ Việt).
+// - PDF: văn bản đơn cách, không có biểu đồ. Có font nhúng (Roboto Mono) thì đủ dấu tiếng Việt; chưa có font thì
+//   dùng Courier chuẩn và bỏ dấu (xem setPdfFonts).
 
 export interface Sheet {
   name: string;
@@ -218,6 +220,18 @@ export function buildXlsx(sheets: Sheet[]): Uint8Array {
 }
 
 // ---------- PDF (văn bản) ----------
+// Có font (setPdfFonts, xem utils/pdfFontLoader.ts): PDF nhúng font Roboto Mono nên giữ đủ dấu tiếng Việt.
+// Chưa có font (chưa tải được): quay về chữ chuẩn Courier, bỏ dấu (foldAscii) như trước. Cả hai cách đều giữ bố cục
+// đơn cách (monospace) nên bảng canh cột bằng khoảng trắng không đổi.
+
+let pdfFonts: { regular: TtfFont; bold: TtfFont } | null = null;
+
+// Nạp font TrueType (thường + đậm) cho các lần buildPdf sau. Ném lỗi nếu tệp font không đọc được.
+export function setPdfFonts(regular: Uint8Array, bold: Uint8Array): void {
+  pdfFonts = { regular: parseTtf(regular), bold: parseTtf(bold) };
+}
+
+export const hasPdfFonts = (): boolean => pdfFonts !== null;
 
 export const foldAscii = (text: string): string =>
   text
@@ -230,51 +244,69 @@ export const foldAscii = (text: string): string =>
     .replace(/×/g, "x")
     .replace(/[^\x20-\x7e]/g, "?");
 
+// Chuẩn hoá cho PDF có font: ký tự dựng sẵn (NFC) để mỗi chữ chiếm đúng một ô; mũi tên → chiếm một ký tự (font không có →).
+const keepUnicode = (text: string): string => text.normalize("NFC").replace(/→/g, ">");
+
 const pdfEscape = (s: string) => s.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 const padCell = (s: string, width: number) => (s.length >= width ? s.slice(0, width) : s + " ".repeat(width - s.length));
 
-function tableLines(columns: string[], rows: string[][], total: string[]): string[] {
-  const all = [columns, ...rows, total].map((r) => r.map(foldAscii));
+function tableLines(columns: string[], rows: string[][], total: string[], fold: (s: string) => string): string[] {
+  const all = [columns, ...rows, total].map((r) => r.map(fold));
   const widths = columns.map((_, i) => Math.min(24, Math.max(...all.map((r) => (r[i] ?? "").length))));
   const line = (r: string[]) => r.map((c, i) => padCell(c, widths[i])).join("  ").trimEnd();
   const rule = "-".repeat(Math.min(92, widths.reduce((a, b) => a + b, 0) + 2 * (widths.length - 1)));
   return [line(all[0]), rule, ...all.slice(1, -1).map(line), rule, line(all[all.length - 1])];
 }
 
-export function reportToPdfLines(data: ReportData): string[] {
+// unicode = true: giữ dấu tiếng Việt (cần font nhúng); false: không dấu (Courier chuẩn).
+export function reportToPdfLines(data: ReportData, unicode = false): string[] {
   const f = data.filters;
+  const fold = unicode ? keepUnicode : foldAscii;
+  const t = (accented: string, plain: string) => (unicode ? accented : plain);
   const lines: string[] = [
-    `Khoang thoi gian: ${formatDateVi(f.from)} - ${formatDateVi(f.to)}`,
-    `Hub: ${data.hubLabel} | Phuong tien: ${data.vehicleLabel}`,
-    `Tao luc: ${data.generatedAt}`,
+    `${t("Khoảng thời gian", "Khoang thoi gian")}: ${formatDateVi(f.from)} - ${formatDateVi(f.to)}`,
+    `Hub: ${data.hubLabel} | ${t("Phương tiện", "Phuong tien")}: ${data.vehicleLabel}`,
+    `${t("Tạo lúc", "Tao luc")}: ${data.generatedAt}`,
     "",
-    "CHI SO CHINH",
+    t("CHỈ SỐ CHÍNH", "CHI SO CHINH"),
     ...data.kpis.map((k) => `- ${k.label}: ${k.value}${k.sub ? ` (${k.sub})` : ""}`),
     "",
     data.table.title.toUpperCase(),
-    ...tableLines(data.table.columns, data.table.rows, data.table.total),
+    ...tableLines(data.table.columns, data.table.rows, data.table.total, fold),
     "",
     data.heatmap.title.toUpperCase(),
-    ...tableLines(["", ...data.heatmap.columns], data.heatmap.rows.map((r) => [r.label, ...r.cells.map((c) => c.text)]), ["", ...data.heatmap.columns.map(() => "")]).slice(0, -2),
+    ...tableLines(
+      ["", ...data.heatmap.columns],
+      data.heatmap.rows.map((r) => [r.label, ...r.cells.map((c) => c.text)]),
+      ["", ...data.heatmap.columns.map(() => "")],
+      fold,
+    ).slice(0, -2),
     "",
     data.series.title.toUpperCase(),
-    ...data.series.byDay.map((p) => `${p.title}  ${p.value}${p.weekend ? "  (cuoi tuan)" : ""}`),
+    ...data.series.byDay.map((p) => `${p.title}  ${p.value}${p.weekend ? t("  (cuối tuần)", "  (cuoi tuan)") : ""}`),
   ];
   return lines.flatMap((l) => {
-    const text = foldAscii(l);
+    const text = Array.from(fold(l));
     const wrapped: string[] = [];
-    for (let i = 0; i === 0 || i < text.length; i += 92) wrapped.push(text.slice(i, i + 92));
+    for (let i = 0; i === 0 || i < text.length; i += 92) wrapped.push(text.slice(i, i + 92).join(""));
     return wrapped;
   });
 }
 
-export function buildPdf(data: ReportData): Uint8Array {
-  const lines = reportToPdfLines(data);
-  const title = foldAscii(`BAO CAO: ${data.title}`);
-  const perPage = 54;
+const PDF_LINES_PER_PAGE = 54;
+
+function paginate(lines: string[]): string[][] {
   const pages: string[][] = [];
-  for (let i = 0; i < lines.length; i += perPage) pages.push(lines.slice(i, i + perPage));
+  for (let i = 0; i < lines.length; i += PDF_LINES_PER_PAGE) pages.push(lines.slice(i, i + PDF_LINES_PER_PAGE));
   if (pages.length === 0) pages.push([]);
+  return pages;
+}
+
+// Bản không font: chữ Courier chuẩn, không dấu.
+function buildPdfPlain(data: ReportData): Uint8Array {
+  const lines = reportToPdfLines(data, false);
+  const title = foldAscii(`BAO CAO: ${data.title}`);
+  const pages = paginate(lines);
 
   const objects: string[] = [];
   objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
@@ -301,6 +333,142 @@ export function buildPdf(data: ReportData): Uint8Array {
   for (let n = 1; n < objects.length; n++) pdf += `${String(offsets[n]).padStart(10, "0")} 00000 n \n`;
   pdf += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
   return new TextEncoder().encode(pdf);
+}
+
+// ----- Bản có font nhúng (Type0 / CIDFontType2, Identity-H) -----
+
+const textEncoder = new TextEncoder();
+
+function concatBytes(parts: (string | Uint8Array)[]): Uint8Array {
+  const chunks = parts.map((p) => (typeof p === "string" ? textEncoder.encode(p) : p));
+  const out = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+  let at = 0;
+  for (const c of chunks) {
+    out.set(c, at);
+    at += c.length;
+  }
+  return out;
+}
+
+const hex4 = (n: number): string => n.toString(16).toUpperCase().padStart(4, "0");
+
+// Ghi nhận glyph đã dùng (glyphId → ký tự) để dựng /W và ToUnicode; ký tự font không có thì thay bằng "?".
+function glyphHex(font: TtfFont, used: Map<number, number>, text: string): string {
+  let out = "";
+  for (const ch of text) {
+    let cp = ch.codePointAt(0) as number;
+    let gid = font.glyphFor(cp);
+    if (gid === 0) {
+      cp = 63;
+      gid = font.glyphFor(cp);
+    }
+    if (gid !== 0 && !used.has(gid)) used.set(gid, cp);
+    out += hex4(gid);
+  }
+  return `<${out}>`;
+}
+
+function toUnicodeCMap(used: Map<number, number>): string {
+  const entries = [...used.entries()].sort((a, b) => a[0] - b[0]);
+  const utf16 = (cp: number): string => {
+    if (cp <= 0xffff) return hex4(cp);
+    const v = cp - 0x10000;
+    return hex4(0xd800 + (v >> 10)) + hex4(0xdc00 + (v & 0x3ff));
+  };
+  let body = "";
+  for (let i = 0; i < entries.length; i += 100) {
+    const chunk = entries.slice(i, i + 100);
+    body += `${chunk.length} beginbfchar\n${chunk.map(([gid, cp]) => `<${hex4(gid)}> <${utf16(cp)}>`).join("\n")}\nendbfchar\n`;
+  }
+  return (
+    "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n" +
+    "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n" +
+    `1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n${body}endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend`
+  );
+}
+
+function pdfObject(n: number, dict: string, stream?: Uint8Array | string): Uint8Array {
+  if (stream === undefined) return concatBytes([`${n} 0 obj\n${dict}\nendobj\n`]);
+  const bytes = typeof stream === "string" ? textEncoder.encode(stream) : stream;
+  return concatBytes([`${n} 0 obj\n${dict.replace(">>", `/Length ${bytes.length} >>`)}\nstream\n`, bytes, "\nendstream\nendobj\n"]);
+}
+
+// 5 đối tượng liên tiếp bắt đầu từ `base`: Type0, CIDFont, FontDescriptor, FontFile2, ToUnicode.
+function fontObjects(base: number, font: TtfFont, name: string, used: Map<number, number>): Uint8Array[] {
+  const k = 1000 / font.unitsPerEm;
+  const widths = [...used.keys()].sort((a, b) => a - b).map((gid) => `${gid} [${Math.round(font.advance(gid) * k)}]`).join(" ");
+  const [x0, y0, x1, y1] = font.bbox.map((v) => Math.round(v * k));
+  return [
+    pdfObject(base, `<< /Type /Font /Subtype /Type0 /BaseFont /${name} /Encoding /Identity-H /DescendantFonts [${base + 1} 0 R] /ToUnicode ${base + 4} 0 R >>`),
+    pdfObject(
+      base + 1,
+      `<< /Type /Font /Subtype /CIDFontType2 /BaseFont /${name} /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor ${base + 2} 0 R /CIDToGIDMap /Identity /DW 1000 /W [${widths}] >>`,
+    ),
+    pdfObject(
+      base + 2,
+      `<< /Type /FontDescriptor /FontName /${name} /Flags 5 /FontBBox [${x0} ${y0} ${x1} ${y1}] /ItalicAngle 0 /Ascent ${Math.round(font.ascent * k)} /Descent ${Math.round(font.descent * k)} /CapHeight ${Math.round(font.capHeight * k)} /StemV 80 /FontFile2 ${base + 3} 0 R >>`,
+    ),
+    pdfObject(base + 3, `<< /Length1 ${font.bytes.length} >>`, font.bytes),
+    pdfObject(base + 4, "<< >>", toUnicodeCMap(used)),
+  ];
+}
+
+function buildPdfWithFonts(data: ReportData, fonts: { regular: TtfFont; bold: TtfFont }): Uint8Array {
+  const lines = reportToPdfLines(data, true);
+  const title = keepUnicode(`BÁO CÁO: ${data.title}`);
+  const pages = paginate(lines);
+  const usedRegular = new Map<number, number>();
+  const usedBold = new Map<number, number>();
+
+  const REGULAR = 3; // 3..7
+  const BOLD = 8; // 8..12
+  const FIRST_PAGE = 13;
+
+  const objects: Uint8Array[] = [];
+  const pageObjects: Uint8Array[] = [];
+  pages.forEach((pageLines, i) => {
+    const heading = i === 0 ? `BT /F2 13 Tf 40 806 Td ${glyphHex(fonts.bold, usedBold, title)} Tj ET\n` : "";
+    const body = `BT /F1 9 Tf 12.5 TL 40 ${i === 0 ? 784 : 806} Td ${pageLines.map((l) => `${glyphHex(fonts.regular, usedRegular, l)} Tj T*`).join(" ")} ET`;
+    const footer = `BT /F1 8 Tf 40 24 Td ${glyphHex(fonts.regular, usedRegular, `Trang ${i + 1}/${pages.length}`)} Tj ET`;
+    const pageNo = FIRST_PAGE + i * 2;
+    pageObjects.push(
+      pdfObject(pageNo, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${REGULAR} 0 R /F2 ${BOLD} 0 R >> >> /Contents ${pageNo + 1} 0 R >>`),
+      pdfObject(pageNo + 1, "<< >>", `${heading}${body}\n${footer}`),
+    );
+  });
+
+  // Mã glyph 0 (.notdef) không bao giờ được ghi nhận; thêm "?" để /W luôn có mục cho ký tự thay thế.
+  glyphHex(fonts.regular, usedRegular, "?");
+  glyphHex(fonts.bold, usedBold, "?");
+
+  objects.push(
+    pdfObject(1, "<< /Type /Catalog /Pages 2 0 R >>"),
+    pdfObject(2, `<< /Type /Pages /Kids [${pages.map((_, i) => `${FIRST_PAGE + i * 2} 0 R`).join(" ")}] /Count ${pages.length} >>`),
+    ...fontObjects(REGULAR, fonts.regular, "RobotoMono-Regular", usedRegular),
+    ...fontObjects(BOLD, fonts.bold, "RobotoMono-Bold", usedBold),
+    ...pageObjects,
+  );
+
+  const header = concatBytes(["%PDF-1.4\n%", new Uint8Array([0xe2, 0xe3, 0xcf, 0xd3]), "\n"]);
+  const parts: Uint8Array[] = [header];
+  const offsets: number[] = [];
+  let length = header.length;
+  objects.forEach((obj, i) => {
+    offsets[i + 1] = length;
+    parts.push(obj);
+    length += obj.length;
+  });
+  const count = objects.length + 1;
+  const xref =
+    `xref\n0 ${count}\n0000000000 65535 f \n` +
+    offsets.slice(1).map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("") +
+    `trailer\n<< /Size ${count} /Root 1 0 R >>\nstartxref\n${length}\n%%EOF\n`;
+  parts.push(textEncoder.encode(xref));
+  return concatBytes(parts);
+}
+
+export function buildPdf(data: ReportData): Uint8Array {
+  return pdfFonts ? buildPdfWithFonts(data, pdfFonts) : buildPdfPlain(data);
 }
 
 // ---------- tải xuống ----------

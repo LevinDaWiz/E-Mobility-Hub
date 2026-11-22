@@ -38,6 +38,7 @@ export const METRO_SURGE_FILL_EVERY_MS = 3_000; // mỗi 3 giây mô phỏng, m�
 // IoT (UC22)
 export const IOT_INTERVAL_MS = 5_000; // chu kỳ phát StateUpdate (giờ mô phỏng)
 export const IOT_DRAIN_PCT_PER_MIN = 0.5; // xe đang đi mất 0,5% pin / phút mô phỏng
+export const IOT_CHARGE_PCT_PER_MIN = 1; // xe CHARGING không có phiên sạc nào quản lý được cộng 1% pin / phút mô phỏng
 export const IOT_RANDOM_FAULT_PROB = 0.0005; // xác suất lỗi ngẫu nhiên / thiết bị / chu kỳ (chỉ khi bật)
 
 // Báo cáo (UC17)
