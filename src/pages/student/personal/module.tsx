@@ -1,4 +1,5 @@
 import { PlaceholderPage } from "../../../components/ui";
+import { ChargingNewPage } from "./ChargingNewPage";
 import { ParkingPage } from "./ParkingPage";
 import type { AppModule } from "../../../routes/types";
 
@@ -20,20 +21,7 @@ export const studentPersonalModule: AppModule = {
         />
       ),
     },
-    {
-      path: "/app/charging/new",
-      element: (
-        <PlaceholderPage
-          owner="M3"
-          title="Đăng ký sạc"
-          ucs={[
-            { code: "UC05", name: "Đăng ký nhu cầu sạc (pin mục tiêu, deadline)" },
-            { code: "UC09", name: "Chọn cổng sạc và khung giờ" },
-          ]}
-          file="src/pages/student/personal/module.tsx"
-        />
-      ),
-    },
+    { path: "/app/charging/new", element: <ChargingNewPage /> },
     {
       path: "/app/personal",
       element: (

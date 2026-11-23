@@ -31,7 +31,8 @@ export const fmtTime = (iso: string | number) =>
 
 export const fmtMinutes = (ms: number) => {
   const min = Math.max(0, Math.round(ms / 60_000));
-  return min >= 60 ? `${Math.floor(min / 60)} giờ ${min % 60} phút` : `${min} phút`;
+  if (min < 60) return `${min} phút`;
+  return min % 60 === 0 ? `${min / 60} giờ` : `${Math.floor(min / 60)} giờ ${min % 60} phút`;
 };
 
 export const errorText = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
