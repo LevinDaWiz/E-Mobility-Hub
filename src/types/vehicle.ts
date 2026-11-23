@@ -1,3 +1,5 @@
+import type { PortKind } from "./charging";
+
 export enum VehicleStatus {
   AVAILABLE = "AVAILABLE",
   RESERVED = "RESERVED",
@@ -17,4 +19,19 @@ export interface Vehicle {
   batteryLevel: number;
   status: VehicleStatus;
   currentHubId: string;
+}
+
+// Xe cá nhân của sinh viên, tách biệt với Vehicle (xe dùng chung).
+export interface PersonalVehicle {
+  vehicleId: string;
+  type: VehicleType;
+  plateNumber: string;
+  model: string;
+  batteryLevel: number;
+  batteryCapacityKwh: number;
+  batteryUpdatedAt: string;
+  portKind: PortKind; // FAST: dùng được cổng FAST và STANDARD; STANDARD: chỉ cổng STANDARD
+
+  // ID biểu diễn association Student 1--* PersonalVehicle.
+  ownerId: string;
 }
