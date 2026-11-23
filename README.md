@@ -53,3 +53,9 @@ src/
 - **Thông báo:** `notify(userId | "*" | "role:OPERATOR", message, level)`.
 - **Zustand v5:** selector trả về object/mảng mới phải bọc `useShallow`.
 - Chi tiết phân công: thư mục `phan-cong/`.
+
+## Đỗ xe & sạc (M3)
+- **App sinh viên:** `/app/parking` tìm Hub theo nhu cầu (chỗ đỗ / cổng sạc / cả hai), khoảng cách, phút chờ sạc và giữ chỗ có đếm ngược (UC07, UC08); `/app/charging/new` đăng ký sạc: xe, pin mục tiêu, giờ bắt đầu, deadline, chọn cổng/khung giờ, gợi ý Hub hoặc giờ khác khi hết cổng (UC05, UC09); `/app/charging` theo dõi tiến độ pin và giờ dự kiến xong (UC10); `/app/personal` xe cá nhân và pin.
+- **Site quản trị:** `/admin/charging` bảng thời gian theo cổng, đổi ưu tiên, dời 15′, huỷ, "Xếp lại lịch Hub" (UC12).
+- **Logic:** `engine/chargingScheduler.ts` (công thức ưu tiên NIFR-05 ghi trong comment, `buildSchedule`, `rescheduleOnConflict` NIFR-06), `services/chargingService.ts`, `services/parkingService.ts`; việc định kỳ ở `engine/m3Handlers.ts` (hết hạn giữ chỗ NIFR-01, chạy phiên sạc, xếp lại khi cổng FAULTY/MAINTENANCE, thử lại yêu cầu PENDING).
+- **Thử nhanh:** đăng nhập `2112345` → Đặt chỗ đỗ, chờ hết hạn (hoặc tua ở Demo) để thấy chỗ tự giải phóng; Đăng ký sạc → tua thời gian để thấy SCHEDULED → CHARGING → COMPLETED. Báo lỗi cổng đang sạc (Sự cố / Demo) → phiên chuyển sang cổng khác, sinh viên được thông báo.
