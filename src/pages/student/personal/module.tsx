@@ -1,4 +1,5 @@
 import { PlaceholderPage } from "../../../components/ui";
+import { ParkingPage } from "./ParkingPage";
 import type { AppModule } from "../../../routes/types";
 
 // M3: xe cá nhân, chỗ đỗ & sạc (app mobile).
@@ -7,20 +8,7 @@ export const studentPersonalModule: AppModule = {
   owner: "M3",
   area: "student",
   routes: [
-    {
-      path: "/app/parking",
-      element: (
-        <PlaceholderPage
-          owner="M3"
-          title="Đặt chỗ đỗ"
-          ucs={[
-            { code: "UC07", name: "Tìm Hub có chỗ đỗ / cổng sạc" },
-            { code: "UC08", name: "Đặt chỗ đỗ (có đếm ngược)" },
-          ]}
-          file="src/pages/student/personal/module.tsx"
-        />
-      ),
-    },
+    { path: "/app/parking", element: <ParkingPage /> },
     {
       path: "/app/charging",
       element: (
