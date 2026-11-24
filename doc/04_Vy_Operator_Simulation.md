@@ -32,7 +32,7 @@ SimulationService.createScenario / runScenario / getRunStatus / getResult   // U
 - Tạo ticket `VEHICLE_FAULT` / `PORT_FAULT` thủ công hoặc tự động (NIFR-04).
 - Luồng: OPEN → ASSIGNED (`assign(operatorId)`) → IN_PROGRESS → CLOSED (`close(resolution)`).
 - Khi ticket mở: xe → FAULTY / cổng → FAULTY; khi đóng: trở về AVAILABLE/FREE.
-- Cổng lỗi: gọi `ChargingScheduler.rescheduleOnConflict` của M3 cho các phiên bị ảnh hưởng.
+- Cổng lỗi: gọi `ChargingScheduler.rescheduleOnConflict` của M3 cho **mọi** phiên đang sạc hoặc đã xếp lịch trên cổng đó. M3 tự chuyển cổng / ghi nhận gián đoạn + đưa yêu cầu về hàng chờ và thông báo sinh viên, Vận hành; M4 không tự đổi trạng thái phiên hay báo thêm (tránh thông báo trùng, mâu thuẫn).
 
 ### NIFR-04 – Tự phát hiện sự cố
 - Tick handler quét: xe/cổng có trạng thái FAULTY mà chưa có ticket → tạo ticket + `raiseAlert` WARNING/CRITICAL.

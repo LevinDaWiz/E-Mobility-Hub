@@ -3,6 +3,7 @@ import {
   HubOperationalStatus,
   HubType,
   ReservationStatus,
+  RequestStatus,
   DispatchStatus,
   TicketStatus,
   PortKind,
@@ -507,6 +508,15 @@ function hubDeleteBlockers(hubId: string): string[] {
 
   const tickets = s.tickets.filter((t) => t.hubId === hubId && isOpenTicket(t.status)).length;
   if (tickets > 0) blockers.push(`Còn ${tickets} phiếu sự cố chưa đóng tại Hub này.`);
+
+  // M3: yêu cầu sạc đang chờ / đã xếp lịch và lượt đặt chỗ đỗ còn hiệu lực gắn với Hub này.
+  const requests = s.chargingRequests.filter(
+    (r) => r.hubId === hubId && (r.status === RequestStatus.PENDING || r.status === RequestStatus.SCHEDULED),
+  ).length;
+  if (requests > 0) blockers.push(`Còn ${requests} yêu cầu sạc đang chờ hoặc đã xếp lịch tại Hub này.`);
+
+  const parkingBookings = s.parkingReservations.filter((r) => r.hubId === hubId && isLiveParkingReservation(r.status)).length;
+  if (parkingBookings > 0) blockers.push(`Còn ${parkingBookings} lượt đặt chỗ đỗ còn hiệu lực tại Hub này.`);
 
   const dispatches = s.dispatchOrders.filter(
     (o) => (o.fromHubId === hubId || o.toHubId === hubId) && o.status !== DispatchStatus.DONE && o.status !== DispatchStatus.CANCELLED,

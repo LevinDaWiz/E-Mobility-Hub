@@ -45,13 +45,13 @@
 - Chỉ Quản trị viên lưu được; vai trò khác xem ở chế độ chỉ đọc. Có "Hủy thay đổi" và "Khôi phục mặc định". Cài đặt **không bị xoá** khi bấm Reset ở Demo.
 - Nhóm: **Giữ chỗ** (thời hạn giữ xe mặc định 30 giây, giữ chỗ đỗ 120 giây), **ngưỡng mặc định cho Hub mới**, **công suất cổng sạc tối đa**, **dữ liệu ngoài mô phỏng** (hệ số Metro surge, chu kỳ lấy dữ liệu Metro, chu kỳ IoT, tốc độ giảm pin), **báo cáo** (khoảng thời gian tối đa, số báo cáo lưu lại).
 - Mã nghiệp vụ đọc bằng `getSettings()` **ngay lúc dùng** (đừng lưu vào biến module). Đổi cài đặt chỉ ảnh hưởng thao tác **mới**: lượt đặt đang giữ vẫn hết hạn theo hạn lúc đặt, Hub / cổng đã có không bị đổi.
-- **M2** đọc `vehicleReservationMs`; **M3** đọc `parkingReservationMs` khi làm đặt chỗ đỗ (hiện chưa có chỗ nào dùng giá trị này).
+- **M2** đọc `vehicleReservationMs`; **M3** đọc `parkingReservationMs` khi đặt chỗ đỗ (`ParkingService.reserveParking`, đã nối; trang Đặt chỗ đỗ hiển thị đúng thời hạn này).
 
 ### Việc định kỳ tập trung (`engine/registerHandlers.ts`)
-- `RootLayout` gọi `registerAllTickHandlers()` một lần. Mỗi module có file riêng: `m1Handlers.ts`, `m2Handlers.ts` (hết hạn đặt xe, NIFR-01). **M3 thêm `engine/m3Handlers.ts`** (hết hạn đặt chỗ đỗ, tiến độ phiên sạc) rồi thêm một dòng vào mảng trong `registerHandlers.ts`. Không đăng ký handler như hiệu ứng phụ khi import trang.
+- `RootLayout` gọi `registerAllTickHandlers()` một lần. Mỗi module có file riêng: `m1Handlers.ts`, `m2Handlers.ts` (hết hạn đặt xe, NIFR-01). `m3Handlers.ts` (M3: hết hạn đặt chỗ đỗ, tiến độ phiên sạc, xếp lại khi cổng lỗi). Module mới thêm file `mXHandlers.ts` rồi một dòng vào mảng trong `registerHandlers.ts`. Không đăng ký handler như hiệu ứng phụ khi import trang.
 
 ### Hub có nhận / giao xe được không (`utils/hubAvailability.ts`)
-- `getHubPickupBlocker(hubId)` và `getHubIntakeBlocker(hubId)`: trả lý do chặn hoặc `null`. Phương án "Tạm khóa cổng tiếp nhận" của M4 (UC15) tạo khoá thật (`store.intakeLocks`, hết hạn theo giờ mô phỏng) nên **trả xe** bị chặn ở Hub đó; M3 phải gọi `getHubIntakeBlocker` khi đặt chỗ đỗ trước.
+- `getHubPickupBlocker(hubId)` và `getHubIntakeBlocker(hubId)`: trả lý do chặn hoặc `null`. Phương án "Tạm khóa cổng tiếp nhận" của M4 (UC15) tạo khoá thật (`store.intakeLocks`, hết hạn theo giờ mô phỏng) nên **trả xe** bị chặn ở Hub đó; M3 đã gọi `getHubIntakeBlocker` khi đặt chỗ đỗ trước (Hub bảo trì hoặc đang khoá nhận xe thì không đặt được).
 
 ### UC11 + UC19 – Hub & chỗ đỗ (ĐÃ CÓ BẢN ĐẦU theo mockup)
 - Xem `05_UC11_UC19_Hub_Monitoring_Config.md` (mô tả đầy đủ, mapping mockup, API, quy tắc, việc còn lại).

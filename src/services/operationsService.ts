@@ -164,38 +164,15 @@ export const OperationsService = {
         `Cổng sạc ${newTicket.targetId} sụt nguồn/lỗi: ${newTicket.description}`
       );
 
-      // Gọi ChargingScheduler của M3 để dời lịch sạc các phiên bị ảnh hưởng
-      const activeSession = s.chargingSessions.find(
-        (cs) => cs.portId === newTicket.targetId && cs.status === SessionStatus.CHARGING
+      // Nhờ ChargingScheduler của M3 xếp lại MỌI phiên (đang sạc hoặc đã xếp lịch) trên cổng lỗi. M3 tự lo phần còn lại:
+      // chuyển sang cổng khác, hoặc ghi nhận gián đoạn + đưa yêu cầu về hàng chờ, và thông báo sinh viên / Vận hành.
+      // M4 chỉ kích hoạt, không tự đổi trạng thái hay báo thêm để tránh thông báo trùng và mâu thuẫn với M3.
+      const affected = s.chargingSessions.filter(
+        (cs) =>
+          cs.portId === newTicket.targetId &&
+          (cs.status === SessionStatus.CHARGING || cs.status === SessionStatus.SCHEDULED)
       );
-      if (activeSession) {
-        const rescheduled = ChargingScheduler.rescheduleOnConflict(activeSession.sessionId);
-        if (rescheduled) {
-          notify(
-            "role:OPERATOR",
-            `Phiên sạc ${activeSession.sessionId} tại cổng ${newTicket.targetId} bị gián đoạn do sự cố, đã xếp lại sang cổng ${rescheduled.portId}.`,
-            "warning"
-          );
-        } else {
-          // Chưa xếp lại được (hoặc bộ xếp lịch chưa hoạt động): ghi nhận gián đoạn thật và báo vận hành xử lý thủ công,
-          // thay vì thông báo "đang xếp lại" khi chẳng có gì được xếp lại.
-          const latest = useStore.getState();
-          latest.upsertChargingSession({
-            ...activeSession,
-            status: SessionStatus.INTERRUPTED,
-            endTime: simNowIso(),
-          });
-          const vehicle = latest.vehicles.find((v) => v.vehicleId === activeSession.vehicleId);
-          if (vehicle?.status === VehicleStatus.CHARGING) {
-            latest.updateVehicle(vehicle.vehicleId, { status: VehicleStatus.AVAILABLE });
-          }
-          notify(
-            "role:OPERATOR",
-            `Phiên sạc ${activeSession.sessionId} (xe ${activeSession.vehicleId}) tại cổng ${newTicket.targetId} bị gián đoạn do sự cố kỹ thuật. Chưa xếp lại lịch sạc được, cần xử lý thủ công.`,
-            "warning"
-          );
-        }
-      }
+      affected.forEach((cs) => ChargingScheduler.rescheduleOnConflict(cs.sessionId));
     }
 
     return newTicket;
