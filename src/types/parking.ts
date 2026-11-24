@@ -31,9 +31,14 @@ export interface ParkingReservation {
   studentId: string;
   createdAt: string;
   expiresAt: string;
+  arrivalTime: string;
+  durationMin: number;
+  checkedInAt: string | null;
+  endedAt: string | null;
   status: ReservationStatus;
 
-  // ID biểu diễn association ParkingReservation * --> 1 ParkingSlot, và Hub.
+  // ID biểu diễn association ParkingReservation * --> 1 ParkingSlot, Hub và PersonalVehicle.
   slotId: string;
   hubId: string;
+  vehicleId: string;
 }

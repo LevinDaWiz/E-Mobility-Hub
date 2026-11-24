@@ -18,11 +18,12 @@ import {
   type MetroData,
   type Operator,
   type ParkingSlot,
+  type PersonalVehicle,
   type Student,
   type Trip,
   type Vehicle,
 } from "../types";
-import { DEFAULT_HUB_THRESHOLDS } from "../config/constants";
+import { BATTERY_CAPACITY_KWH, DEFAULT_HUB_THRESHOLDS } from "../config/constants";
 
 // Dữ liệu mẫu cố định (không random) để demo lặp lại được. createSeed() trả về
 // đối tượng MỚI mỗi lần gọi nên có thể dùng cho "reset dữ liệu".
@@ -32,6 +33,7 @@ export interface SeedData {
   parkingSlots: ParkingSlot[];
   chargingPorts: ChargingPort[];
   vehicles: Vehicle[];
+  personalVehicles: PersonalVehicle[];
   students: Student[];
   operators: Operator[];
   accounts: CurrentUser[];
@@ -244,14 +246,22 @@ export function createSeed(): SeedData {
 
       if (vehicle) {
         const n = chargingSessions.length + 1;
+        const requestId = `CR-${pad(n, 3)}`;
+        // Thời gian còn lại = phần pin cần sạc (kWh) / công suất cổng.
+        const remainingMs =
+          (((100 - vehicle.batteryLevel) / 100) * BATTERY_CAPACITY_KWH[vehicle.type] * 3600_000) / spec.powerKw;
         chargingRequests.push({
-          requestId: `CR-${pad(n, 3)}`,
+          requestId,
           vehicleId: vehicle.vehicleId,
           targetBattery: 100,
           desiredStart: iso(-10 * 60_000),
           deadline: iso(2 * 3600_000),
           priority: 70 + n * 5,
           status: RequestStatus.SCHEDULED,
+          hubId: def.hubId,
+          studentId: null,
+          createdAt: iso(-15 * 60_000),
+          priorityReason: "Dữ liệu mẫu",
         });
         chargingSessions.push({
           sessionId: `CS-${pad(n, 3)}`,
@@ -262,6 +272,10 @@ export function createSeed(): SeedData {
           status: SessionStatus.CHARGING,
           portId,
           vehicleId: vehicle.vehicleId,
+          requestId,
+          targetBattery: 100,
+          expectedEnd: iso(Math.round(remainingMs)),
+          rescheduledFrom: null,
         });
       }
     }
@@ -272,6 +286,53 @@ export function createSeed(): SeedData {
     { studentId: "2112346", name: "Trần Thị Bình", email: "binh.tran@hcmut.edu.vn" },
     { studentId: "2112347", name: "Lê Minh Châu", email: "chau.le@hcmut.edu.vn" },
     { studentId: "2112348", name: "Phạm Quốc Duy", email: "duy.pham@hcmut.edu.vn" },
+  ];
+
+  const personalVehicles: PersonalVehicle[] = [
+    {
+      vehicleId: "PV-001",
+      ownerId: "2112345",
+      type: EM,
+      plateNumber: "59-X3 123.45",
+      model: "Xe máy điện VinFast Evo200",
+      batteryLevel: 34,
+      batteryCapacityKwh: 3.5,
+      portKind: PortKind.FAST,
+      batteryUpdatedAt: iso(-2 * 60_000),
+    },
+    {
+      vehicleId: "PV-002",
+      ownerId: "2112345",
+      type: EB,
+      plateNumber: "XĐ-0002",
+      model: "Xe đạp điện Yadea i8",
+      batteryLevel: 18,
+      batteryCapacityKwh: 1.2,
+      portKind: PortKind.STANDARD,
+      batteryUpdatedAt: iso(-3 * 3600_000),
+    },
+    {
+      vehicleId: "PV-003",
+      ownerId: "2112346",
+      type: EM,
+      plateNumber: "59-Y1 456.78",
+      model: "Xe máy điện Yadea Odora",
+      batteryLevel: 62,
+      batteryCapacityKwh: 3.4,
+      portKind: PortKind.FAST,
+      batteryUpdatedAt: iso(-1 * 60_000),
+    },
+    {
+      vehicleId: "PV-004",
+      ownerId: "2112347",
+      type: EB,
+      plateNumber: "XĐ-0004",
+      model: "Xe đạp điện Giant Momentum",
+      batteryLevel: 45,
+      batteryCapacityKwh: 1.5,
+      portKind: PortKind.STANDARD,
+      batteryUpdatedAt: iso(-4 * 60_000),
+    },
   ];
 
   const operators: Operator[] = [
@@ -318,6 +379,7 @@ export function createSeed(): SeedData {
     parkingSlots,
     chargingPorts,
     vehicles,
+    personalVehicles,
     students,
     operators,
     accounts,

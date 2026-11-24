@@ -1,3 +1,4 @@
+import { BATTERY_CAPACITY_KWH } from "../config/constants";
 import { useStore } from "../store";
 import {
   PortStatus,
@@ -14,10 +15,7 @@ import { dateKey, type Fact } from "./reportEngine";
 // (thời gian chờ) giữ giá trị mẫu của ngày đó.
 
 // Dung lượng pin ước lượng để đổi % pin đã sạc sang kWh (cùng bậc với mô hình mẫu của báo cáo).
-const BATTERY_KWH: Record<VehicleType, number> = {
-  [VehicleType.E_BIKE]: 1.5,
-  [VehicleType.E_MOTORBIKE]: 3.4,
-};
+const BATTERY_KWH: Record<VehicleType, number> = BATTERY_CAPACITY_KWH;
 
 const mean = (values: number[]): number => (values.length === 0 ? 0 : values.reduce((a, b) => a + b, 0) / values.length);
 
@@ -25,7 +23,7 @@ const mean = (values: number[]): number => (values.length === 0 ? 0 : values.red
 export function buildLiveFacts(today: string, vehicle: string): Record<string, Partial<Fact>> {
   const s = useStore.getState();
   const isToday = (iso: string): boolean => dateKey(new Date(iso)) === today;
-  const typeOf = new Map(s.vehicles.map((v) => [v.vehicleId, v.type]));
+  const typeOf = new Map([...s.vehicles, ...s.personalVehicles].map((v) => [v.vehicleId, v.type]));
   const hubOfVehicle = new Map(s.vehicles.map((v) => [v.vehicleId, v.currentHubId]));
   const hubOfPort = new Map(s.chargingPorts.map((p) => [p.portId, p.hubId]));
   const matches = (vehicleId: string): boolean => vehicle === "ALL" || typeOf.get(vehicleId) === vehicle;
@@ -52,16 +50,18 @@ export function buildLiveFacts(today: string, vehicle: string): Record<string, P
       (r) => r.status === ReservationStatus.ACTIVE || r.status === ReservationStatus.CONFIRMED,
     ).length;
 
-    // Yêu cầu sạc có giờ bắt đầu mong muốn hôm nay (Hub = Hub hiện tại của xe).
+    // Yêu cầu sạc có giờ bắt đầu mong muốn hôm nay (Hub = hubId của yêu cầu).
     const requests = s.chargingRequests.filter(
       (r) =>
-        hubOfVehicle.get(r.vehicleId) === hub.hubId &&
+        r.hubId === hub.hubId &&
         isToday(r.desiredStart) &&
         matches(r.vehicleId) &&
         r.status !== RequestStatus.CANCELLED,
     );
     const charge = requests.length;
-    const chargeOk = requests.filter((r) => r.status === RequestStatus.SCHEDULED).length;
+    const chargeOk = requests.filter(
+      (r) => r.status === RequestStatus.SCHEDULED || r.status === RequestStatus.COMPLETED,
+    ).length;
 
     const trips = s.trips.filter((t) => t.fromHubId === hub.hubId && isToday(t.startTime) && matches(t.vehicleId)).length;
 
