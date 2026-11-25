@@ -1,4 +1,4 @@
-import { createBrowserRouter, type RouteObject } from "react-router-dom";
+import { createHashRouter, type RouteObject } from "react-router-dom";
 import { AdminLayout } from "../layout/AdminLayout";
 import { PublicLayout } from "../layout/PublicLayout";
 import { RootLayout } from "../layout/RootLayout";
@@ -14,7 +14,7 @@ const routesOf = (area: AppArea): RouteObject[] =>
   appModules.filter((m) => m.area === area).flatMap((m) => m.routes);
 
 // 3 khu: đăng nhập (công khai), app sinh viên (/app), site quản trị (/admin).
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     element: <RootLayout />,
     children: [
