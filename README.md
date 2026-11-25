@@ -1,6 +1,7 @@
 # Smart E-Mobility Hub – MVP (CO3001, nhóm 6)
 
 Ứng dụng demo chạy hoàn toàn trên trình duyệt (React 19 + TypeScript + Vite + Tailwind CSS + Zustand). Không có backend/database: dữ liệu mẫu nằm trong `src/data/seed.ts`, trạng thái nằm trong store Zustand.
+Automatic building & deploy on Github Page, access at: https://levindawiz.github.io/E-Mobility-Hub/#/login
 
 ## Chạy
 
