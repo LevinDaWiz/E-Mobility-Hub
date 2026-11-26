@@ -14,9 +14,9 @@ npm run lint
 
 Đăng nhập demo, 
 **Mật khẩu chung `123456`**: 
-Sinh viên `2112345` (hoặc `2112346`, `2112347`, `2112348`, hoặc email sinh viên); 
-Nhân sự `admin`, `operator1`, `operator2`, `manager`. 
-Hoặc dùng "⚙ Demo" góc dưới phải để đổi nhanh tài khoản (không cần mật khẩu).
+- Sinh viên `2112345` (hoặc `2112346`, `2112347`, `2112348`, hoặc email sinh viên); 
+- Nhân sự `admin`, `operator1`, `operator2`, `manager`. 
+- Hoặc dùng "⚙ Demo" góc dưới phải để đổi nhanh tài khoản (không cần mật khẩu).
 
 **Xác thực (UC20, giả lập phía trình duyệt):** mật khẩu được băm PBKDF2-SHA256 (muối riêng, 100.000 vòng) và so với `src/data/credentials.ts`, không lưu mật khẩu gốc. Nhập sai **5 lần** thì tài khoản bị khóa **5 phút** (giờ thật, lưu ở `localStorage`). Phiên đăng nhập giữ **8 giờ** (`services/sessionService.ts`), F5 không bị đăng xuất; dữ liệu nghiệp vụ vẫn về seed. Mật khẩu `timeout` / `expired` dùng để xem màn hình lỗi. Đây chỉ là demo: băm nằm trong mã nguồn nên không thay được xác thực thật ở server, đừng nhập mật khẩu thật.
 
