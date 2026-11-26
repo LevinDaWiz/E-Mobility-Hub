@@ -51,7 +51,7 @@ src/
 - **Việc định kỳ của module mới:** tạo `engine/m3Handlers.ts` (ví dụ cho M3) rồi thêm vào `engine/registerHandlers.ts`.
 - **PDF có dấu tiếng Việt:** nhúng font Roboto Mono (`src/assets/fonts/`, giấy phép OFL trong `OFL.txt`).
 
-## Hub & chỗ đỗ (UC11 + UC19)
+## Hub & chỗ đỗ 
 `/admin/hubs`: danh sách Hub, chi tiết 5 tab (Tổng quan, Chỗ đỗ, Cổng sạc, Phương tiện, Cấu hình), thêm / sửa / bảo trì tài nguyên, ngưỡng riêng từng Hub, khoá lạc quan (409), nhập CSV/JSON. Xem `src/pages/admin/hubs/README.md`. Thử nhanh: đăng nhập `admin`, bấm **⚙ Demo → Metro surge** để thấy Hub Metro thành Overloaded; **Demo → Admin khác sửa** rồi Lưu ở tab Cấu hình để thấy 409.
 
 ## Quy ước chính
@@ -61,12 +61,19 @@ src/
 - **Zustand v5:** selector trả về object/mảng mới phải bọc `useShallow`.
 - Chi tiết phân công: thư mục `doc/`.
 
-## Đỗ xe & sạc (M3)
+## Đỗ xe & sạc 
 - **App sinh viên:** `/app/parking` tìm Hub theo nhu cầu (chỗ đỗ / cổng sạc / cả hai), khoảng cách, phút chờ sạc và giữ chỗ có đếm ngược (UC07, UC08); `/app/charging/new` đăng ký sạc: xe, pin mục tiêu, giờ bắt đầu, deadline, chọn cổng/khung giờ, gợi ý Hub hoặc giờ khác khi hết cổng (UC05, UC09); `/app/charging` theo dõi tiến độ pin và giờ dự kiến xong (UC10); `/app/personal` xe cá nhân và pin.
 - **Site quản trị:** `/admin/charging` bảng thời gian theo cổng, đổi ưu tiên, dời 15′, huỷ, "Xếp lại lịch Hub" (UC12).
 - **Logic:** `engine/chargingScheduler.ts` (công thức ưu tiên NIFR-05 ghi trong comment, `buildSchedule`, `rescheduleOnConflict` NIFR-06), `services/chargingService.ts`, `services/parkingService.ts`; việc định kỳ ở `engine/m3Handlers.ts` (hết hạn giữ chỗ NIFR-01, chạy phiên sạc, xếp lại khi cổng FAULTY/MAINTENANCE, thử lại yêu cầu PENDING).
 - **Thử nhanh:** đăng nhập `2112345` → Đặt chỗ đỗ, chờ hết hạn (hoặc tua ở Demo) để thấy chỗ tự giải phóng; Đăng ký sạc → tua thời gian để thấy SCHEDULED → CHARGING → COMPLETED. Báo lỗi cổng đang sạc (Sự cố / Demo) → phiên chuyển sang cổng khác, sinh viên được thông báo.
 
-## Phương tiện và mô phỏng (M4)
+## Phương tiện và mô phỏng 
 - `/admin/vehicles`: danh sách xe toàn mạng, "Xem thông tin" mở trang chi tiết (tab Thông tin, Lịch sử chuyến, Sự cố). Chỉ **Admin** thêm / sửa / xóa xe; xe đang đặt, sử dụng, sạc hoặc nằm trong lệnh điều phối không xóa được.
 - `/admin/simulation` → "Phối hợp đa sự cố (Stress-Test)": dòng thời gian biến cố (cổng / xe giả định lỗi, tăng nhu cầu) cấu hình bằng hộp thoại "Thêm/chỉnh sửa biến cố".
+
+## Phân công
+Chi tiết phân công trong /doc:
+M0, M1 - Thiện
+M2 - Khang
+M3 - Triết
+M4 - Vỹ
