@@ -7,6 +7,7 @@ import {
   DispatchStatus,
   PortStatus,
   SessionStatus,
+  SlotStatus,
   TicketStatus,
   TicketType,
   VehicleStatus,
@@ -164,15 +165,38 @@ export const OperationsService = {
         `Cổng sạc ${newTicket.targetId} sụt nguồn/lỗi: ${newTicket.description}`
       );
 
-      // Nhờ ChargingScheduler của M3 xếp lại MỌI phiên (đang sạc hoặc đã xếp lịch) trên cổng lỗi. M3 tự lo phần còn lại:
-      // chuyển sang cổng khác, hoặc ghi nhận gián đoạn + đưa yêu cầu về hàng chờ, và thông báo sinh viên / Vận hành.
-      // M4 chỉ kích hoạt, không tự đổi trạng thái hay báo thêm để tránh thông báo trùng và mâu thuẫn với M3.
-      const affected = s.chargingSessions.filter(
-        (cs) =>
-          cs.portId === newTicket.targetId &&
-          (cs.status === SessionStatus.CHARGING || cs.status === SessionStatus.SCHEDULED)
+      // Gọi ChargingScheduler của M3 để dời lịch sạc các phiên bị ảnh hưởng
+      const activeSession = s.chargingSessions.find(
+        (cs) => cs.portId === newTicket.targetId && cs.status === SessionStatus.CHARGING
       );
-      affected.forEach((cs) => ChargingScheduler.rescheduleOnConflict(cs.sessionId));
+      if (activeSession) {
+        const rescheduled = ChargingScheduler.rescheduleOnConflict(activeSession.sessionId);
+        if (rescheduled) {
+          notify(
+            "role:OPERATOR",
+            `Phiên sạc ${activeSession.sessionId} tại cổng ${newTicket.targetId} bị gián đoạn do sự cố, đã xếp lại sang cổng ${rescheduled.portId}.`,
+            "warning"
+          );
+        } else {
+          // Chưa xếp lại được (hoặc bộ xếp lịch chưa hoạt động): ghi nhận gián đoạn thật và báo vận hành xử lý thủ công,
+          // thay vì thông báo "đang xếp lại" khi chẳng có gì được xếp lại.
+          const latest = useStore.getState();
+          latest.upsertChargingSession({
+            ...activeSession,
+            status: SessionStatus.INTERRUPTED,
+            endTime: simNowIso(),
+          });
+          const vehicle = latest.vehicles.find((v) => v.vehicleId === activeSession.vehicleId);
+          if (vehicle?.status === VehicleStatus.CHARGING) {
+            latest.updateVehicle(vehicle.vehicleId, { status: VehicleStatus.AVAILABLE });
+          }
+          notify(
+            "role:OPERATOR",
+            `Phiên sạc ${activeSession.sessionId} (xe ${activeSession.vehicleId}) tại cổng ${newTicket.targetId} bị gián đoạn do sự cố kỹ thuật. Chưa xếp lại lịch sạc được, cần xử lý thủ công.`,
+            "warning"
+          );
+        }
+      }
     }
 
     return newTicket;
@@ -282,29 +306,54 @@ export const OperationsService = {
   },
 
   /**
-   * Thực thi vận chuyển lệnh điều phối (tạm khóa xe để M2 không cho sinh viên đặt)
+   * Thực thi vận chuyển lệnh điều phối.
+   * Đồng bộ chỗ đỗ: xe rời Hub nguồn thì slot nguồn được giải phóng; Hub đích GIỮ CHỖ (RESERVED) cho từng xe
+   * đang trên đường. Nếu Hub đích không đủ chỗ trống thì không vận chuyển và báo cho Vận hành.
    */
   executeDispatchOrder(orderId: string): void {
     const s = useStore.getState();
     const order = s.dispatchOrders.find((o) => o.orderId === orderId);
     if (!order) return;
 
-    s.updateDispatchStatus(orderId, DispatchStatus.IN_PROGRESS);
-
-    // Tạm khóa trạng thái logic các xe đang trên đường vận chuyển
-    for (const vId of order.vehicleIds) {
-      s.updateVehicle(vId, { status: VehicleStatus.IN_USE }); // In-Transit
+    // Chỉ chuyển các xe vẫn còn AVAILABLE tại Hub nguồn (có thể đã bị đặt / hỏng từ lúc tạo lệnh).
+    const moving = order.vehicleIds.filter((vId) => {
+      const v = s.vehicles.find((x) => x.vehicleId === vId);
+      return v && v.currentHubId === order.fromHubId && v.status === VehicleStatus.AVAILABLE;
+    });
+    if (moving.length === 0) {
+      notify("role:OPERATOR", `Lệnh ${orderId}: không còn xe nào sẵn sàng tại ${order.fromHubId} để vận chuyển. Hãy hủy và tạo lệnh mới.`, "warning");
+      return;
     }
+    const freeAtTarget = s.parkingSlots.filter((sl) => sl.hubId === order.toHubId && sl.status === SlotStatus.FREE);
+    if (freeAtTarget.length < moving.length) {
+      notify(
+        "role:OPERATOR",
+        `Lệnh ${orderId}: ${order.toHubId} chỉ còn ${freeAtTarget.length} chỗ trống, không đủ cho ${moving.length} xe. Hãy giảm số xe hoặc chọn Hub đích khác.`,
+        "warning"
+      );
+      return;
+    }
+
+    moving.forEach((vId, i) => {
+      // Giải phóng đúng slot của xe tại Hub nguồn.
+      const src = s.parkingSlots.find((sl) => sl.hubId === order.fromHubId && sl.status === SlotStatus.OCCUPIED && sl.vehicleId === vId);
+      if (src) s.updateParkingSlot(src.slotId, { status: SlotStatus.FREE, vehicleId: null });
+      // Giữ chỗ tại Hub đích.
+      s.updateParkingSlot(freeAtTarget[i].slotId, { status: SlotStatus.RESERVED, vehicleId: vId });
+      s.updateVehicle(vId, { status: VehicleStatus.IN_USE }); // In-Transit
+    });
+
+    s.upsertDispatchOrder({ ...order, vehicleIds: moving, status: DispatchStatus.IN_PROGRESS });
 
     notify(
       "role:OPERATOR",
-      `Đang vận chuyển ${order.vehicleIds.length} xe từ ${order.fromHubId} sang ${order.toHubId}...`,
+      `Đang vận chuyển ${moving.length} xe từ ${order.fromHubId} sang ${order.toHubId}...`,
       "info"
     );
   },
 
   /**
-   * Hoàn tất lệnh điều phối (cập nhật vị trí xe sang Hub đích và đưa về AVAILABLE)
+   * Hoàn tất lệnh điều phối: xe sang Hub đích (slot đã giữ chuyển thành OCCUPIED) và về AVAILABLE.
    */
   completeDispatchOrder(orderId: string): void {
     const s = useStore.getState();
@@ -313,8 +362,9 @@ export const OperationsService = {
 
     s.updateDispatchStatus(orderId, DispatchStatus.DONE);
 
-    // Chuyển Hub của xe sang Hub đích và chuyển trạng thái về AVAILABLE
     for (const vId of order.vehicleIds) {
+      const reserved = s.parkingSlots.find((sl) => sl.hubId === order.toHubId && sl.status === SlotStatus.RESERVED && sl.vehicleId === vId);
+      if (reserved) s.updateParkingSlot(reserved.slotId, { status: SlotStatus.OCCUPIED, vehicleId: vId });
       s.updateVehicle(vId, {
         currentHubId: order.toHubId,
         status: VehicleStatus.AVAILABLE,
@@ -329,7 +379,8 @@ export const OperationsService = {
   },
 
   /**
-   * Hủy lệnh điều phối
+   * Hủy lệnh điều phối. Nếu đang vận chuyển: bỏ giữ chỗ ở Hub đích và đưa xe về lại Hub nguồn
+   * (cần còn chỗ trống ở nguồn; xe nào không còn chỗ sẽ giữ trạng thái "đang vận chuyển" và có thông báo).
    */
   cancelDispatchOrder(orderId: string): void {
     const s = useStore.getState();
@@ -338,10 +389,23 @@ export const OperationsService = {
 
     s.updateDispatchStatus(orderId, DispatchStatus.CANCELLED);
 
-    // Khôi phục xe nếu đang bị khóa
     if (order.status === DispatchStatus.IN_PROGRESS) {
+      const stuck: string[] = [];
       for (const vId of order.vehicleIds) {
-        s.updateVehicle(vId, { status: VehicleStatus.AVAILABLE });
+        const reserved = s.parkingSlots.find((sl) => sl.hubId === order.toHubId && sl.status === SlotStatus.RESERVED && sl.vehicleId === vId);
+        if (reserved) s.updateParkingSlot(reserved.slotId, { status: SlotStatus.FREE, vehicleId: null });
+        const back = useStore
+          .getState()
+          .parkingSlots.find((sl) => sl.hubId === order.fromHubId && sl.status === SlotStatus.FREE);
+        if (back) {
+          s.updateParkingSlot(back.slotId, { status: SlotStatus.OCCUPIED, vehicleId: vId });
+          s.updateVehicle(vId, { currentHubId: order.fromHubId, status: VehicleStatus.AVAILABLE });
+        } else {
+          stuck.push(vId);
+        }
+      }
+      if (stuck.length > 0) {
+        notify("role:OPERATOR", `Hủy lệnh ${orderId}: ${order.fromHubId} hết chỗ nên ${stuck.join(", ")} vẫn đang ở trạng thái vận chuyển. Hãy giải phóng chỗ rồi xử lý thủ công.`, "warning");
       }
     }
 

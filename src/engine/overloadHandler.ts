@@ -163,6 +163,12 @@ export const OverloadHandler = {
           availableVehicles,
           "TRUCK"
         );
+      } else {
+        notify(
+          "role:OPERATOR",
+          `${recommendation.sourceHubName ?? "Hub"} không còn xe AVAILABLE để điều phối. Hãy chọn phương án khác (ví dụ tạm khóa cổng tiếp nhận).`,
+          "warning"
+        );
       }
     } else {
       // Thông báo hệ thống về việc phân luồng / hạn chế
