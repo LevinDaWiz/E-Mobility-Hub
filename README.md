@@ -1,7 +1,7 @@
 # Smart E-Mobility Hub – MVP (CO3001, nhóm 6)
 
 Ứng dụng demo chạy hoàn toàn trên trình duyệt (React 19 + TypeScript + Vite + Tailwind CSS + Zustand). Không có backend/database: dữ liệu mẫu nằm trong `src/data/seed.ts`, trạng thái nằm trong store Zustand.
-
+Truy cập page: https://levindawiz.github.io/E-Mobility-Hub/
 ## Chạy
 
 ```bash
@@ -10,6 +10,15 @@ npm run dev      # http://localhost:5173
 npm run build    # kiểm tra kiểu + build
 npm run lint
 ```
+## Authentication
+
+Đăng nhập demo, 
+**Mật khẩu chung `123456`**: 
+Sinh viên `2112345` (hoặc `2112346`, `2112347`, `2112348`, hoặc email sinh viên); 
+Nhân sự `admin`, `operator1`, `operator2`, `manager`. 
+Hoặc dùng "⚙ Demo" góc dưới phải để đổi nhanh tài khoản (không cần mật khẩu).
+
+**Xác thực (UC20, giả lập phía trình duyệt):** mật khẩu được băm PBKDF2-SHA256 (muối riêng, 100.000 vòng) và so với `src/data/credentials.ts`, không lưu mật khẩu gốc. Nhập sai **5 lần** thì tài khoản bị khóa **5 phút** (giờ thật, lưu ở `localStorage`). Phiên đăng nhập giữ **8 giờ** (`services/sessionService.ts`), F5 không bị đăng xuất; dữ liệu nghiệp vụ vẫn về seed. Mật khẩu `timeout` / `expired` dùng để xem màn hình lỗi. Đây chỉ là demo: băm nằm trong mã nguồn nên không thay được xác thực thật ở server, đừng nhập mật khẩu thật.
 
 ## Hai giao diện, một ứng dụng
 
@@ -18,10 +27,6 @@ npm run lint
 | Đăng nhập (SSO giả lập, UC20) | `/login` ... | mọi người | khung điện thoại |
 | **App mobile** | `/app/...` | Sinh viên | header + thanh tab dưới (Trang chủ, Hub, Hoạt động, Tài khoản) |
 | **Site quản trị** | `/admin/...` | Vận hành, Quản trị, Ban quản lý | sidebar navy (Tổng quan, Hub & chỗ đỗ, Phương tiện, Sạc & Lịch sạc, Mô phỏng, Báo cáo & Thống kê, Cài đặt) |
-
-Đăng nhập demo, **mật khẩu chung `123456`**: sinh viên `2112345` (hoặc `2112346`, `2112347`, `2112348`, hoặc email sinh viên); nhân sự `admin`, `operator1`, `operator2`, `manager`. Hoặc dùng "⚙ Demo" góc dưới phải để đổi nhanh tài khoản (không cần mật khẩu).
-
-**Xác thực (UC20, giả lập phía trình duyệt):** mật khẩu được băm PBKDF2-SHA256 (muối riêng, 100.000 vòng) và so với `src/data/credentials.ts`, không lưu mật khẩu gốc. Nhập sai **5 lần** thì tài khoản bị khóa **5 phút** (giờ thật, lưu ở `localStorage`). Phiên đăng nhập giữ **8 giờ** (`services/sessionService.ts`), F5 không bị đăng xuất; dữ liệu nghiệp vụ vẫn về seed. Mật khẩu `timeout` / `expired` dùng để xem màn hình lỗi. Đây chỉ là demo: băm nằm trong mã nguồn nên không thay được xác thực thật ở server, đừng nhập mật khẩu thật.
 
 ## Cấu trúc
 
