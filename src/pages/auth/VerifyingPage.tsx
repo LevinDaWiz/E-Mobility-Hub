@@ -28,7 +28,8 @@ export function VerifyingPage() {
       .catch((error: unknown) => {
         if (cancelled) return;
         const code: AuthErrorCode = error instanceof AuthError ? error.code : "IDENTITY_UNAVAILABLE";
-        navigate("/login/failed", { replace: true, state: { code } });
+        const detail = error instanceof AuthError ? { retryAfterMs: error.retryAfterMs, attemptsLeft: error.attemptsLeft } : {};
+        navigate("/login/failed", { replace: true, state: { code, ...detail } });
       });
 
     return () => {

@@ -9,7 +9,14 @@ const ALL_ERRORS = Object.keys(AUTH_ERROR_MESSAGES) as AuthErrorCode[];
 export function FailedPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const code = (location.state as { code?: AuthErrorCode } | null)?.code;
+  const info = location.state as { code?: AuthErrorCode; retryAfterMs?: number; attemptsLeft?: number } | null;
+  const code = info?.code;
+  const detail =
+    code === "ACCOUNT_LOCKED" && info?.retryAfterMs
+      ? `Thử lại sau khoảng ${Math.max(1, Math.ceil(info.retryAfterMs / 60_000))} phút.`
+      : code === "INVALID_ACCOUNT" && info?.attemptsLeft !== undefined
+        ? `Sai tên đăng nhập hoặc mật khẩu. Còn ${info.attemptsLeft} lần thử trước khi tài khoản bị khóa tạm thời.`
+        : null;
 
   return (
     <div className="flex flex-1 flex-col items-center px-6 pt-32">
@@ -29,6 +36,8 @@ export function FailedPage() {
           </li>
         ))}
       </ul>
+
+      {detail && <p className="mt-6 text-center text-sm font-semibold text-red-700">{detail}</p>}
 
       <div className="mt-auto w-full pb-10 pt-8">
         <DarkButton onClick={() => navigate("/login/idp", { replace: true })}>↻ Thử lại</DarkButton>
